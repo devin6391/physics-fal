@@ -1,4 +1,34 @@
-# Settings shared by every shot. A shot can override model, audio or negative_prompt.
+# Settings shared by every shot.
+
+# Notion is the source of truth: every run reads the shots, prompts, frames and character
+# images from it. These are the Notion field names the project reads.
+notion:
+  shots_data_source: 84f0353c-eb31-4810-8c44-87bd41c3b24a   # 🎥 Shots
+  model_name: Kling 3.0          # only shots whose Model is this are generated
+  character_class: Character     # Asset Library rows of this Class become Kling elements
+  fields:                        # 🎥 Shots
+    shot: Shot
+    section: Section
+    order: Order
+    model: Model
+    duration: Duration (s)
+    start_frame: Start frame
+    end_frame: End frame
+    elements: Elements
+    prompt:
+      characters: "Prompt: Characters"
+      setting: "Prompt: Setting and look"
+      camera: "Prompt: Camera"
+      action: "Prompt: Action"
+      dialogue: "Prompt: Dialogue"
+      timing: "Prompt: Timing"
+      environment: "Prompt: Environment"
+      keep_still: "Prompt: Keep still"
+  asset_fields:                  # 🎬 Asset Library
+    name: Asset
+    class: Class
+    face: Face close-up
+    sheet: Reference Image
 
 model: fal-ai/kling-video/v3/pro/image-to-video
 

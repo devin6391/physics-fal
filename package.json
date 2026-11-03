@@ -9,10 +9,11 @@
   },
   "scripts": {
     "generate": "node scripts/generate.js",
-    "check": "node scripts/generate.js --dry-run"
+    "check": "node scripts/generate.js --section \"Cold open\" --dry-run"
   },
   "dependencies": {
     "@fal-ai/client": "1.10.1",
+    "@notionhq/client": "5.27.1",
     "dotenv": "18.0.9",
     "yaml": "2.9.1"
   }

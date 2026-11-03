@@ -1,13 +1,13 @@
 # physics-fal
 
-Generates the Kling 3.0 clips for the short film **Physics** on [fal.ai](https://fal.ai), one scene at a time.
+Generates the Kling 3.0 clips for the short film **Physics** on [fal.ai](https://fal.ai), one shot or section at a time.
 
-Notion stays the source of truth: prompts are written and approved in the **Shots** database, and the locked character sheets live in the **Asset Library**. This project takes the approved prompts and images and does the generating, so the film's rules are applied the same way every time:
+Notion is the source of truth. Every run reads the shot straight from its row in the **Shots** database (the eight prompt fields, duration, start and end frames, and its characters) and the locked character images from the **Asset Library**. There are no local copies of prompts or images to keep in sync: change something in Notion and the next run uses it. The project applies the film's rules the same way every time:
 
 - the standard **KEEP STILL** block is appended to every prompt
 - the **negative prompt** is sent with every clip
 - Kling's own **audio stays off** (sound is made separately)
-- `@aryan`, `@priya` … become fal's `@Element1`, `@Element2` … with the right face and sheet attached
+- `@aryan`, `@priya` … become fal's `@Element1`, `@Element2` … with that character's face close-up and sheet attached
 - a take is **never overwritten**, and every run is logged with its cost
 
 ## Setup (once)
@@ -16,78 +16,70 @@ Needs Node.js 20 or newer.
 
 ```bash
 npm install
-cp .env.example .env      # then paste your fal key into .env
+cp .env.example .env      # then fill in both keys
 ```
 
-Get the key from fal.ai → **API Keys**. `.env` is git-ignored; never commit the key, paste it into chat, or put it in Notion.
+- `FAL_KEY`: from fal.ai → **API Keys**.
+- `NOTION_TOKEN`: see Notion setup below.
 
-Then copy the locked images in (see `assets/README.md`).
+`.env` is git-ignored; never commit the keys, paste them into chat, or put them in Notion.
+
+### Notion setup
+
+1. Go to **notion.so/profile/integrations** → **New integration**. Name it `physics-fal`, pick your workspace, type **Internal**. It only needs **Read content**.
+2. Copy its **Internal Integration Secret** into `.env` as `NOTION_TOKEN=`.
+3. Give it access to two databases. In Notion, open each one → **•••** (top right) → **Connections** → add `physics-fal`:
+   - 🎥 Shots
+   - 🎬 Asset Library
 
 ## Making clips
 
 ```bash
-# 1. See exactly what will be sent (spends nothing)
-node scripts/generate.js shots/cold_open.yaml --only CO-02a --print
+# 1. See exactly what will be sent, as read from Notion (spends nothing)
+node scripts/generate.js CO-02a --print
 
-# 2. Check every file and see the cost (spends nothing)
-node scripts/generate.js shots/cold_open.yaml --only CO-02a --dry-run
+# 2. Check the shot, download its images and see the cost (spends nothing)
+node scripts/generate.js CO-02a --dry-run
 
 # 3. Generate (asks "Spend about $X?" before starting)
-node scripts/generate.js shots/cold_open.yaml --only CO-02a
+node scripts/generate.js CO-02a
 ```
 
-Leave out `--only` to run the whole scene at once (up to 4 clips in parallel). Add `--takes 2` for two takes of each shot, and `--yes` to skip the question.
+Name several shots (`CO-02a CO-02b`), or use `--section "Cold open"` for every shot in a section whose Model is Kling 3.0 and whose prompt is written (shots with all eight prompt fields empty are listed and skipped). Up to 4 clips run in parallel. Add `--takes 2` for two takes of each shot, and `--yes` to skip the question. `npm run check` is the dry run for the cold open.
 
 Results:
 
-- `out/<scene>/<shot>-take<N>.mp4`: the clip
-- `out/<scene>/<shot>-take<N>.json`: exactly what was sent (prompt, images, settings, request ID, cost)
+- `out/<section>/<shot>-take<N>.mp4`: the clip
+- `out/<section>/<shot>-take<N>.json`: exactly what was sent (prompt, Notion page and its last edit, image names, settings, request ID, cost)
 - `log.csv`: one line per run, including failures
 
 `out/` is git-ignored because video is too heavy for git. Approved clips go into Notion (the shot's **Generated clip** field).
+
+## What a shot needs in Notion
+
+The checker stops before anything is spent unless the shot's row has:
+
+- **Model** set to Kling 3.0
+- **Duration (s)**: a whole number from 3 to 15
+- **Start frame** (and optionally **End frame**): a png, jpg or webp image. A reused frame is uploaded to this shot's own field too, so the row says exactly what is sent.
+- all eight **Prompt:** fields filled in (Characters, Setting and look, Camera, Action, Dialogue, Timing, Environment, Keep still). Keep still holds the shot's own lines only; the standard block is added automatically.
+- every `@name` in the prompt linked in the shot's **Elements**, as an Asset Library row whose Class is Character and which has a **Face close-up** and a **Reference Image**
+
+Characters are written lowercase with underscores: the Asset Library row "Auto driver" is `@auto_driver`.
+
+**Places have no element.** On fal the room, the pond or the road comes from the start frame, so write "The hostel room at night …" rather than `@hostel_room`. Linking a place in Elements is fine; only characters are sent.
 
 ## The files
 
 | File | What it is |
 | --- | --- |
-| `config.yaml` | Model, prices, audio off, parallel runs, the negative prompt and the standard KEEP STILL block |
-| `elements.yaml` | The element library: each character's face close-up (frontal) and sheet (reference) |
-| `shots/<scene>.yaml` | One file per scene: each clip's duration, start frame and the eight prompt sections |
-| `frames/<scene>/` | Approved start and end frames, named after the shot they were made for |
-| `assets/` | Local copies of the locked character images |
+| `config.yaml` | Model, prices, audio off, parallel runs, the negative prompt, the standard KEEP STILL block, and the Notion field names the project reads |
 | `scripts/generate.js` | The generator |
-| `lib/` | Prompt assembly, checks and the upload cache |
+| `lib/notion.js` | Reads shots and characters from Notion with the Notion SDK, and downloads their images |
+| `lib/` (the rest) | Prompt assembly, checks and the upload cache |
 
-## Adding a shot
+## How images move
 
-Copy the approved sections from the shot's row in Notion into the scene file:
+Notion's file links expire within the hour, so each run downloads the images it needs into `.cache/notion/`. A file is kept there until it's replaced in Notion; replacing it gives it a new id, and the next run downloads the new one.
 
-```yaml
-  - id: CO-02c
-    duration: 5
-    start_frame: frames/cold_open/CO-02c.png
-    # end_frame: frames/cold_open/CO-02c-end.png   (optional)
-    prompt:
-      characters: "@aryan: ..."
-      setting: ...
-      camera: ...
-      action: ...
-      dialogue: ...
-      timing: |-
-        0.0–1.0 s: ...
-      environment: ...
-      keep_still: ...      # the shot's own lines only; the standard block is added automatically
-```
-
-Rules the checker enforces:
-
-- duration is a whole number from 3 to 15 seconds
-- the start frame (and end frame, if given) exists
-- all eight sections are filled in
-- every `@name` is in `elements.yaml`
-
-**Places have no element.** On fal the room, the pond or the road comes from the start frame, so write "The hostel room at night …" rather than `@hostel_room`.
-
-## How uploads work
-
-fal reads images from URLs, so each local image is uploaded to fal's own storage the first time it's used and kept there for 30 days. The URL is remembered in `.cache/uploads.json`, keyed by the file's content: an unchanged image is never uploaded twice, and a changed one is uploaded again automatically.
+fal reads images from URLs, so each image is then uploaded to fal's own storage the first time it's used and kept there for 30 days. The URL is remembered in `.cache/uploads.json`, keyed by the file's content: an unchanged image is never uploaded twice. `.cache/` is git-ignored and safe to delete.
