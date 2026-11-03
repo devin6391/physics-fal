@@ -1,0 +1,33 @@
+# Settings shared by every shot. A shot can override model, audio or negative_prompt.
+
+model: fal-ai/kling-video/v3/pro/image-to-video
+
+# USD per second of video. Check https://fal.ai/pricing if fal changes its prices.
+price_per_second:
+  audio_off: 0.112
+  audio_on: 0.168
+
+# Sound is made separately (voices, SFX, beds), so Kling's own audio stays off.
+audio: false
+
+# How many clips run on fal at the same time.
+parallel: 4
+
+# Uploaded images are kept on fal's storage this long, and reused until a few days before.
+upload_expiry: 30d
+
+negative_prompt: >-
+  duplicate objects, extra phone, extra people, morphing face, extra fingers,
+  merged hands, looking at camera, camera shake, cuts, flicker, slow motion,
+  text, subtitles, watermark, blur, distort, low quality
+
+# Appended to every shot's KEEP STILL section, after the shot's own lines.
+keep_still_standard: >-
+  One continuous shot, no cuts. The camera does only what CAMERA says. Only the
+  people named in CHARACTERS appear, each exactly once, and each keeps the same
+  face from the first frame to the last. Every object exists exactly once:
+  nothing is duplicated, nothing appears from nowhere, nothing vanishes; an
+  object that is put down stays where it was put down. Hands have five fingers
+  and never merge with objects. No one looks into the camera. No mouth moves
+  unless DIALOGUE says so. The light stays as set. Normal speed, no slow motion.
+  No text, subtitles, logos or watermark.

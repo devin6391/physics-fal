@@ -1,0 +1,47 @@
+# Cold open — the phone call and the fall (Notion: Film Structure, scene 0).
+# One entry per clip. Notion's Shots database is where prompts are approved; copy the
+# approved sections here. The generator adds the standard KEEP STILL block and the
+# negative prompt itself, so they are never written here.
+#
+# Fields per shot:
+#   id           the Notion shot ID (CO-02a); clips are saved as out/<scene>/<id>-take<N>.mp4
+#   duration     3 to 15 seconds
+#   start_frame  path to the approved first image (required)
+#   end_frame    optional path to a last image
+#   audio        optional, overrides config.yaml (normally off)
+#   prompt       the eight sections; name characters as @aryan, @priya ...
+
+scene: cold_open
+
+shots:
+  - id: CO-02a
+    duration: 8
+    start_frame: frames/cold_open/CO-01.png
+    prompt:
+      characters: >-
+        @aryan: the young man who hurries in from the left edge of the frame.
+        Out of breath, his hands still wet from washing.
+      setting: >-
+        The hostel room at night, lit by the single tube light on the right wall.
+        The open balcony doorway and the dark night at the far end. Shot on 35mm
+        film, clean sharp lens, f/4. Muted cold palette.
+      camera: >-
+        Static wide shot. The camera does not move.
+      action: >-
+        @aryan: hurried and out of breath, eyes fixed on the ringing phone the
+        whole time.
+      dialogue: >-
+        No one speaks.
+      timing: |-
+        0.0–1.0 s: the empty room; the phone glows on the bed, ringing.
+        1.0–2.5 s: the entrance door at the left edge of the frame swings open; warm hallway light spills across the floor. @aryan hurries in from the left and reaches the bed in a few quick steps.
+        2.5–5.5 s: he bends over the bed, staring down at the glowing phone, and quickly wipes his wet hands on the front of his hoodie: right hand twice, then left hand twice.
+        5.5–6.5 s: he grabs the phone off the mattress with his right hand.
+        6.5–8.0 s: he straightens up, holding the phone in front of his chest, looking down at its screen.
+      environment: >-
+        The ceiling fan turns slowly. The phone vibrates slightly on the mattress,
+        its screen glowing, until he picks it up.
+      keep_still: >-
+        The camera, the furniture and the mosquito net do not move. There is only
+        one phone; it stays on the bed until he picks it up with his right hand.
+        He does not sit down. Nothing moves outside the balcony doorway.

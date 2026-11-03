@@ -1,0 +1,19 @@
+{
+  "name": "physics-fal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generates the Kling 3.0 clips for the short film \"Physics\" on fal.ai, one scene at a time.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.js",
+    "check": "node scripts/generate.js --dry-run"
+  },
+  "dependencies": {
+    "@fal-ai/client": "1.10.1",
+    "dotenv": "18.0.9",
+    "yaml": "2.9.1"
+  }
+}

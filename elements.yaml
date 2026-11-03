@@ -1,0 +1,29 @@
+# The element library: every character a prompt can name with @name.
+# The generator turns @aryan into @Element1 (and so on, in order of first mention)
+# and sends these images with the request.
+#
+#   frontal:    the face close-up (the main view)
+#   references: 1 to 3 more images, e.g. the character sheet
+#
+# Places have no element here: on fal the room comes from the shot's start frame.
+# Names use lowercase letters, digits and underscores, as on Higgsfield.
+
+aryan:
+  frontal: assets/characters/aryan/face-closeup.jpg
+  references:
+    - assets/characters/aryan/sheet.jpg
+
+priya:
+  frontal: assets/characters/priya/face-closeup.jpg
+  references:
+    - assets/characters/priya/sheet.jpg
+
+auto_driver:
+  frontal: assets/characters/auto_driver/face-closeup.jpg
+  references:
+    - assets/characters/auto_driver/sheet.jpg
+
+shopkeeper:
+  frontal: assets/characters/shopkeeper/face-closeup.jpg
+  references:
+    - assets/characters/shopkeeper/sheet.jpg
