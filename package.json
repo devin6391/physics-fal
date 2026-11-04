@@ -10,9 +10,11 @@
   "scripts": {
     "pull": "node scripts/pull.js",
     "generate": "node scripts/generate.js",
+    "voice": "node scripts/voice.js",
     "check": "node scripts/generate.js --section \"Cold open\" --dry-run"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "2.76.0",
     "@fal-ai/client": "1.10.1",
     "@notionhq/client": "5.27.1",
     "dotenv": "18.0.9",

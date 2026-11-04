@@ -16,11 +16,12 @@ Needs Node.js 20 or newer.
 
 ```bash
 npm install
-cp .env.example .env      # then fill in both keys
+cp .env.example .env      # then fill in the keys
 ```
 
 - `FAL_KEY`: from fal.ai → **API Keys**.
 - `NOTION_TOKEN`: see Notion setup below.
+- `ELEVENLABS_API_KEY`: from ElevenLabs → **API Keys**, for the voices.
 
 `.env` is git-ignored; never commit the keys, paste them into chat, or put them in Notion.
 
@@ -60,6 +61,19 @@ Results:
 
 `out/` is git-ignored because video is too heavy for git. Approved clips go into Notion (the shot's **Generated clip** field).
 
+## Making voices
+
+The dialogue is made on [ElevenLabs](https://elevenlabs.io), one audio file per spoken line, and mixed in CapCut with the rest of the sound. Its key is `ELEVENLABS_API_KEY` in `.env`, with the others.
+
+```bash
+node scripts/voice.js 10-06 --print      # each line and who says it, as read from Notion (free)
+node scripts/voice.js 10-06 --dry-run    # check every speaker has a voice, show the characters it uses (free)
+node scripts/voice.js 10-06              # make them (asks "Use about N characters?" first)
+node scripts/voice.js --voices           # the voices on the account
+```
+
+It reads the shot's **Dialogue lines** field, or **Screenplay audio** when that is empty, written as `Priya (softly): "…" Narrator: …`. Each speaker named in `config.yaml → voice.speakers` is a line; `SFX:` and everything else is skipped. A direction in brackets becomes an Eleven v4 audio tag (`[softly] …`). If a note slips into a line (check `--print`), write the clean lines in Dialogue lines. Takes land in `out/voice/<section>/<shot>-<line>-<speaker>-take<N>.mp3` with a `.json` beside each, never overwritten, and every run is logged in `voice-log.csv`.
+
 ## What a shot needs in Notion
 
 The checker stops before anything is spent unless the shot's row has:
@@ -96,6 +110,7 @@ Use **Kling 3.0** whenever a character's face has to match their sheet, above al
 | `config.yaml` | The fal models (endpoint, price) for each Notion Model, audio off, parallel runs, the negative prompt, the standard KEEP STILL block, and the Notion field names the project reads |
 | `scripts/pull.js` | Downloads shots' images from Notion into `.cache/notion/` |
 | `scripts/generate.js` | The generator |
+| `scripts/voice.js` | Makes the dialogue on ElevenLabs |
 | `lib/notion.js` | Reads shots and characters from Notion with the Notion SDK, and downloads their images (for pull) |
 | `lib/` (the rest) | Prompt assembly, checks and the upload cache |
 

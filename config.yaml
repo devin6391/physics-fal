@@ -23,6 +23,8 @@ notion:
       timing: "Prompt: Timing"
       environment: "Prompt: Environment"
       keep_still: "Prompt: Keep still"
+    dialogue_lines: Dialogue lines       # what is spoken, for voice.js; when empty, voice.js reads Screenplay audio
+    screenplay_audio: Screenplay audio
   asset_fields:                  # 🎬 Asset Library
     name: Asset
     class: Class
@@ -68,3 +70,17 @@ keep_still_standard: >-
   and never merge with objects. No one looks into the camera. No mouth moves
   unless DIALOGUE says so. The light stays as set. Normal speed, no slow motion.
   No text, subtitles, logos or watermark.
+
+# Voices for the dialogue, made on ElevenLabs by scripts/voice.js (mixed in CapCut, like all sound).
+# Each speaker as written in Notion ("Priya (softly): …") needs a voice id here. These are first
+# picks from the account's Hindi voices to audition; swap any id (node scripts/voice.js --voices lists them).
+voice:
+  model: eleven_v4
+  output_format: mp3_44100_128
+  stability: 0.5           # lower = more emotional range, higher = steadier
+  similarity_boost: 0.75
+  speakers:
+    Aryan: xoiRqQNYNTfj1xSWG43x      # Krish - Nervous, Anxious Character
+    Priya: WUgmmuDCpFXQ4z0NUUYX      # Aisha - Sweet Expressive Girlfriend
+    Narrator: x3I60lc1eeBSTsQ7sT6I   # Danish Khan - Deep, Tense, Anticipatory
+    Gudda:                           # not chosen yet: the voice that shouldn't exist

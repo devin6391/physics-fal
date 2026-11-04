@@ -39,6 +39,10 @@ Start and end frames are made by Vineet in Gemini (his Google AI Pro plan), not 
 - **Places get no element.** The room, pond or road comes from the start frame, so write "The hostel room at night …", not `@hostel_room`.
 - **Kling 4.0 takes no character images.** A Kling 4.0 prompt describes people in words, without `@names`, and everyone on screen must already be in the start frame. If a shot needs a character's face to match their sheet (above all, someone walking in from off-frame), recommend Kling 3.0 to Vineet instead.
 
+## Voices
+
+`scripts/voice.js` makes the dialogue on ElevenLabs (see README → Making voices); the key is `ELEVENLABS_API_KEY` in `.env` and follows rule 5. The same spending rule applies: show `--print` and `--dry-run`, and run for real (with `--yes`) only for the exact lines Vineet approved. Which voice plays which character is his call.
+
 ## After each run
 
 Every generation is a trial. Report to Vineet: which shot and take, the cost, and what to check (does the face match the sheet, is any object duplicated, does the timing match). Approved clips go into the shot's **Generated clip** field in Notion, and each trial is logged in the Tasks database under the **Trials log** task (3.T), one subtask per trial: https://app.notion.com/p/401252f6b4ff81e0822fd40e4f3cc54a
