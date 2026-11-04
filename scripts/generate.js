@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-// Generates Kling 3.0 clips on fal.ai from the shots in Notion, the source of truth.
+// Generates Kling clips on fal.ai from the shots in Notion, the source of truth. Each shot's Model in
+// Notion picks the fal model (config.yaml → models): Kling 3.0 or Kling 4.0.
 //
 //   node scripts/generate.js CO-02a                     one shot (several: CO-02a CO-02b or CO-02a,CO-02b)
-//   node scripts/generate.js --section "Cold open"      every Kling shot in a section whose prompt is written
+//   node scripts/generate.js --section "Cold open"      every shot in a section made on fal whose prompt is written
 //   node scripts/generate.js CO-02a --takes 2           two takes of each shot
 //   node scripts/generate.js CO-02a --print             show the exact prompt as read from Notion, spend nothing
-//   node scripts/generate.js CO-02a --dry-run           check Notion, download the images, show the cost, spend nothing
+//   node scripts/generate.js CO-02a --dry-run           check Notion and the local images, show the cost, spend nothing
 //   node scripts/generate.js CO-02a --yes               skip the "spend $X?" question
 //
 // Every run reads the prompt, duration, frames and characters straight from the shot's row in Notion.
+// The images are uploaded to fal from their local copies, which npm run pull downloads beforehand.
 // Clips land in out/<section>/<shot>-take<N>.mp4 (an earlier take is never overwritten),
 // each with a .json beside it recording exactly what was sent. Every run is appended to log.csv.
 import "dotenv/config";
@@ -19,7 +21,7 @@ import { fal } from "@fal-ai/client";
 import { loadConfig, fromRoot } from "../lib/project.js";
 import { SECTIONS, assemblePrompt, toFalElements } from "../lib/prompt.js";
 import { validate } from "../lib/validate.js";
-import { makeNotion, download, slug } from "../lib/notion.js";
+import { makeNotion, localCopy, slug, onFal } from "../lib/notion.js";
 import { makeUploader } from "../lib/uploads.js";
 
 const { values: opts, positionals } = parseArgs({
@@ -60,8 +62,9 @@ try {
   fail(notionError(err));
 }
 
-// In a section, rows whose prompt hasn't been written in Notion yet are skipped, not errors.
+// In a section, rows made elsewhere or whose prompt hasn't been written in Notion yet are skipped, not errors.
 if (opts.section) {
+  shots = onFal(shots, config);
   const unwritten = shots.filter((s) => SECTIONS.every(([key]) => !s.prompt[key]));
   if (unwritten.length) console.log(`Prompt not written in Notion yet, skipped: ${unwritten.map((s) => s.id).join(", ")}`);
   shots = shots.filter((s) => !unwritten.includes(s));
@@ -71,14 +74,19 @@ if (!shots.length) fail("No shots to run.");
 // Build every request first, so all checks happen before any money is spent.
 const audio = config.audio ?? false;
 const jobs = shots.map((shot) => {
+  const model = config.models[shot.model];
+  const v3 = model?.request === "kling-v3";
   const { text, names } = toFalElements(assemblePrompt(shot, config));
   return {
     shot,
+    model,
     prompt: text,
     names,
     characters: names.map((n) => shot.characters.find((c) => c.name === n)),
-    negative: config.negative_prompt,
-    cost: Number(shot.duration) * (audio ? config.price_per_second.audio_on : config.price_per_second.audio_off),
+    // Kling 4.0 on fal has no negative prompt or audio setting.
+    negative: v3 ? config.negative_prompt : null,
+    audioLabel: v3 ? (audio ? "on" : "off") : "no setting",
+    cost: Number(shot.duration) * (model?.usd_per_second ?? 0),
     outDir: `out/${slug(shot.section) || "unsorted"}`,
   };
 });
@@ -87,43 +95,43 @@ const problems = validate(shots, config);
 
 if (opts.print) {
   for (const j of jobs) {
-    console.log(`\n===== ${j.shot.id} · ${j.shot.duration} s · audio ${audio ? "on" : "off"} · ${j.shot.notion.url} =====`);
+    console.log(`\n===== ${j.shot.id} · ${j.shot.model ?? "no Model"} · ${j.shot.duration} s · audio ${j.audioLabel} · ${j.shot.notion.url} =====`);
     console.log(`Start frame: ${j.shot.start_frame?.name ?? "(empty)"}${j.shot.end_frame ? `   End frame: ${j.shot.end_frame.name}` : ""}`);
     j.names.forEach((n, i) => console.log(`@Element${i + 1} = ${n}`));
-    console.log(`\n${j.prompt}\n\nNEGATIVE PROMPT\n${j.negative}`);
+    console.log(`\n${j.prompt}`);
+    if (j.negative) console.log(`\nNEGATIVE PROMPT\n${j.negative}`);
   }
   if (problems.length) fail(`\nNot ready to generate yet:\n  ${problems.join("\n  ")}`);
   process.exit(0);
 }
 if (problems.length) fail(`Fix these in Notion first:\n  ${problems.join("\n  ")}`);
 
-// Download every image now (free), so a broken file shows up before the cost question.
-const downloadProblems = [];
+// Images are uploaded to fal from their local copies only; this script never downloads from Notion.
+// A copy is missing when it was never pulled, or when the file was replaced in Notion since.
+const missing = [];
 for (const j of jobs) {
-  const get = async (file, what) => {
-    try {
-      return await download(file);
-    } catch (err) {
-      downloadProblems.push(`${j.shot.id} ${what}: ${err.message}`);
-    }
+  const local = (file, what) => {
+    const path = localCopy(file);
+    if (!path) missing.push(`${j.shot.id} ${what}: ${file.name}`);
+    return path;
   };
-  j.startPath = await get(j.shot.start_frame, "start frame");
-  if (j.shot.end_frame) j.endPath = await get(j.shot.end_frame, "end frame");
-  j.elementPaths = [];
-  for (const c of j.characters) {
-    j.elementPaths.push({
-      frontal: await get(c.frontal, `${c.name} face close-up`),
-      references: await Promise.all(c.references.map((r) => get(r, `${c.name} sheet`))),
-    });
-  }
+  j.startPath = local(j.shot.start_frame, "start frame");
+  if (j.shot.end_frame) j.endPath = local(j.shot.end_frame, "end frame");
+  j.elementPaths = j.characters.map((c) => ({
+    frontal: local(c.frontal, `${c.name} face close-up`),
+    references: c.references.map((r) => local(r, `${c.name} sheet`)),
+  }));
 }
-if (downloadProblems.length) fail(`Fix these in Notion first:\n  ${downloadProblems.join("\n  ")}`);
+if (missing.length) {
+  const args = opts.section ? `--section "${opts.section}"` : ids.join(" ");
+  fail(`These images aren't on this Mac yet:\n  ${missing.join("\n  ")}\nPull them from Notion, then run this again:\n  npm run pull -- ${args}`);
+}
 
 const total = jobs.reduce((sum, j) => sum + j.cost, 0) * takes;
 console.log(`${opts.section ? `Section ${opts.section}: ` : ""}${jobs.length} shot(s) × ${takes} take(s)`);
 for (const j of jobs) {
   const els = j.names.length ? `  elements: ${j.names.join(", ")}` : "";
-  console.log(`  ${j.shot.id.padEnd(8)} ${String(j.shot.duration).padStart(2)} s  $${(j.cost * takes).toFixed(2)}${els}`);
+  console.log(`  ${j.shot.id.padEnd(8)} ${j.shot.model.padEnd(10)} ${String(j.shot.duration).padStart(2)} s  $${(j.cost * takes).toFixed(2)}${els}`);
 }
 console.log(`Total: about $${total.toFixed(2)}`);
 if (opts["dry-run"]) process.exit(0);
@@ -156,7 +164,27 @@ for (const job of jobs) {
 
 let failures = 0;
 const logPath = fromRoot("log.csv");
-if (!existsSync(logPath)) appendFileSync(logPath, "time,scene,shot,take,file,duration_s,audio,usd,wait_s,request_id,result\n");
+if (!existsSync(logPath)) appendFileSync(logPath, "time,scene,shot,model,take,file,duration_s,audio,usd,wait_s,request_id,result\n");
+
+// The request body for each kind of model, matching its schema on fal.
+function buildInput(run, urls) {
+  if (run.model.request === "kling-v4") {
+    const input = { prompt: run.prompt, start_image_url: urls.start, duration: Number(run.shot.duration) };
+    if (urls.end) input.end_image_url = urls.end;
+    if (run.model.resolution) input.resolution = run.model.resolution;
+    return input;
+  }
+  const input = {
+    prompt: run.prompt,
+    start_image_url: urls.start,
+    duration: String(run.shot.duration),
+    generate_audio: audio,
+    negative_prompt: run.negative,
+  };
+  if (urls.end) input.end_image_url = urls.end;
+  if (urls.elements.length) input.elements = urls.elements;
+  return input;
+}
 
 async function runOne(run) {
   const { shot } = run;
@@ -164,25 +192,19 @@ async function runOne(run) {
   const started = Date.now();
   let requestId = "";
   try {
-    const input = {
-      prompt: run.prompt,
-      start_image_url: await upload(run.startPath),
-      duration: String(shot.duration),
-      generate_audio: audio,
-      negative_prompt: run.negative,
-    };
-    if (run.endPath) input.end_image_url = await upload(run.endPath);
-    if (run.names.length) {
-      input.elements = await Promise.all(
+    const input = buildInput(run, {
+      start: await upload(run.startPath),
+      end: run.endPath ? await upload(run.endPath) : null,
+      elements: await Promise.all(
         run.elementPaths.map(async (el) => ({
           frontal_image_url: await upload(el.frontal),
           reference_image_urls: await Promise.all(el.references.map(upload)),
         })),
-      );
-    }
+      ),
+    });
 
-    console.log(`→ ${label}: submitted`);
-    const result = await fal.subscribe(config.model, {
+    console.log(`→ ${label}: submitted to ${shot.model}`);
+    const result = await fal.subscribe(run.model.endpoint, {
       input,
       logs: false,
       onEnqueue: (id) => (requestId = id),
@@ -208,10 +230,12 @@ async function runOne(run) {
           take: run.take,
           notion_page: shot.notion.url,
           notion_last_edited: shot.notion.last_edited,
-          model: config.model,
+          model: shot.model,
+          endpoint: run.model.endpoint,
           request_id: requestId,
           duration: shot.duration,
-          audio,
+          audio: run.audioLabel,
+          resolution: run.model.resolution ?? null,
           start_frame: shot.start_frame.name,
           end_frame: shot.end_frame?.name ?? null,
           elements: run.characters.map((c, i) => ({
@@ -244,7 +268,7 @@ async function runOne(run) {
 }
 
 function log(run, file, wait, requestId, result) {
-  const cells = [new Date().toISOString(), slug(run.shot.section), run.shot.id, run.take, file, run.shot.duration, audio ? "on" : "off",
+  const cells = [new Date().toISOString(), slug(run.shot.section), run.shot.id, run.shot.model, run.take, file, run.shot.duration, run.audioLabel,
     result === "ok" ? run.cost.toFixed(2) : "0", wait, requestId, result];
   appendFileSync(logPath, cells.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(",") + "\n");
 }

@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "pull": "node scripts/pull.js",
     "generate": "node scripts/generate.js",
     "check": "node scripts/generate.js --section \"Cold open\" --dry-run"
   },

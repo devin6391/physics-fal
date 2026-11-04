@@ -4,7 +4,6 @@
 # images from it. These are the Notion field names the project reads.
 notion:
   shots_data_source: 84f0353c-eb31-4810-8c44-87bd41c3b24a   # 🎥 Shots
-  model_name: Kling 3.0          # only shots whose Model is this are generated
   character_class: Character     # Asset Library rows of this Class become Kling elements
   fields:                        # 🎥 Shots
     shot: Shot
@@ -30,14 +29,22 @@ notion:
     face: Face close-up
     sheet: Reference Image
 
-model: fal-ai/kling-video/v3/pro/image-to-video
-
-# USD per second of video. Check https://fal.ai/pricing if fal changes its prices.
-price_per_second:
-  audio_off: 0.112
-  audio_on: 0.168
+# The models a shot's Model field in Notion can name, and how each is called on fal. Shots set to
+# any other Model (Free still, Cinema Studio 4.0 …) are not generated here.
+# Prices are USD per second of video, from each model's fal page; check them if fal changes its prices.
+models:
+  Kling 3.0:
+    endpoint: fal-ai/kling-video/v3/pro/image-to-video
+    request: kling-v3
+    usd_per_second: 0.112        # audio off ($0.168 with audio)
+  Kling 4.0:
+    endpoint: fal-ai/kling-video/v4/image-to-video
+    request: kling-v4            # no character elements, negative prompt or audio setting on fal
+    usd_per_second: 0.157
+    resolution: 1080p            # 720p or 1080p
 
 # Sound is made separately (voices, SFX, beds), so Kling's own audio stays off.
+# Kling 4.0 on fal has no audio setting, so this applies to Kling 3.0 only.
 audio: false
 
 # How many clips run on fal at the same time.

@@ -1,10 +1,12 @@
 # CLAUDE.md
 
-This project generates the moving clips for **Physics**, a Hindi/Hinglish AI horror short film made by Vineet. It sends approved prompts and images to Kling 3.0 on fal.ai, one shot or section at a time. Read `README.md` for how it works.
+This project generates the moving clips for **Physics**, a Hindi/Hinglish AI horror short film made by Vineet. It sends approved prompts and images to Kling 3.0 or Kling 4.0 on fal.ai (the shot's Model in Notion decides), one shot or section at a time. Read `README.md` for how it works.
 
 ## Where things live
 
-Notion is the source of truth. Every run reads the shot's prompt, duration, frames and characters straight from Notion; there are no local copies of shots, prompts or images. To change a shot, change it in Notion.
+Notion is the source of truth. Every run reads the shot's prompt, duration, frames and characters straight from Notion; there are no local copies of shots or prompts. To change a shot, change it in Notion.
+
+Images go Notion → Mac → fal, in two separate steps. `npm run pull -- <shots>` downloads a shot's images into `.cache/notion/`; `generate.js` never downloads, and uploads to fal only from those local copies. If generate stops with "These images aren't on this Mac yet", run the pull command it prints, then run generate again. If the pull itself reports a problem, the image is missing or unusable in Notion: tell Vineet which field on which row.
 
 - **Shots database:** one row per shot, holding the approved prompt sections, frames and clips. https://app.notion.com/p/a1d5ee3618a54315ad3564098a704a8c
 - **Film Structure (Scenes):** one row per scene, with the scene's production plan and sound plan. https://app.notion.com/p/860e5425a76c43d08cd09837ac1f5272
@@ -15,7 +17,7 @@ Start and end frames are made by Vineet in Gemini (his Google AI Pro plan), not 
 
 ## Reading and writing Notion
 
-- **Use the Notion SDK first.** Read shots through the project: `node scripts/generate.js <shot> --print` shows exactly what Notion holds for a shot and what would be sent, and `--dry-run` checks it. For anything the scripts don't cover, write a small script with `@notionhq/client` and `NOTION_TOKEN` (reuse `lib/notion.js`).
+- **Use the Notion SDK first.** Read shots through the project (`npm run pull` for images): `node scripts/generate.js <shot> --print` shows exactly what Notion holds for a shot and what would be sent, and `--dry-run` checks it. For anything the scripts don't cover, write a small script with `@notionhq/client` and `NOTION_TOKEN` (reuse `lib/notion.js`).
 - **The Notion MCP is the fallback**, for what the SDK can't do: the integration is read-only, so writes (filling prompt fields, logging trials, attaching clips) go through the MCP for now, as do pages the integration hasn't been given access to.
 - Never copy a shot into a local file to work from. If Notion and something local disagree, Notion wins.
 
@@ -23,18 +25,19 @@ Start and end frames are made by Vineet in Gemini (his Google AI Pro plan), not 
 
 1. **Never spend money without Vineet's explicit OK** on that shot's prompt. Before any real run, show `--print` and `--dry-run` output; only run for real when he says so. The script's "Spend about $X?" question cannot be answered from Claude's shell, so a real run needs `--yes`; use it only for the exact run he approved (same shots, same takes, same cost), never otherwise.
 2. **Shot IDs never change.** When a shot is split, the pieces get letters (CO-02 → CO-02a, CO-02b, CO-02c). Never renumber shots; edit order lives in Notion's Order field.
-3. **Kling's audio stays off.** Voices, sound effects and beds are made separately and mixed in CapCut. `audio: false` in `config.yaml` applies to every shot; never change it.
+3. **Kling's audio stays off.** Voices, sound effects and beds are made separately and mixed in CapCut. `audio: false` in `config.yaml` applies to every Kling 3.0 shot; never change it. Kling 4.0 on fal has no audio setting: when reviewing a Kling 4.0 clip, check whether it came back with sound, and say so.
 4. **Never overwrite or delete a take.** `out/` keeps every take; `log.csv` keeps every run, including failures.
 5. **The fal key and the Notion token live only in `.env`.** Never print it, log it, commit it, or put it in Notion or chat.
-6. **Do not change the KEEP STILL standard block or the negative prompt** in `config.yaml` without asking. They were written to stop specific failures (a duplicated phone, faces drifting, people looking into the lens). The same goes for `model:` and the Notion field names in `config.yaml`: a different model changes the price and the look.
+6. **Do not change the KEEP STILL standard block or the negative prompt** in `config.yaml` without asking. They were written to stop specific failures (a duplicated phone, faces drifting, people looking into the lens). The same goes for `models:` (endpoints, prices) and the Notion field names in `config.yaml`: a different model changes the price and the look.
 7. **Clips are 3 to 15 seconds.** Anything longer is split into lettered pieces in Notion first.
 8. **One retry, then stop.** If a request fails twice, stop and report the error instead of retrying again. Whether a clip came out wrong is Vineet's call after he watches it; never re-run a shot without his OK.
 
 ## What a shot needs in Notion
 
-- Model = Kling 3.0, a whole-number Duration (s) from 3 to 15, a Start frame image, and all eight Prompt fields: Characters, Setting and look, Camera, Action, Dialogue, Timing, Environment, Keep still (the shot's own lines only; the standard block is added automatically).
+- Model = Kling 3.0 or Kling 4.0, a whole-number Duration (s) from 3 to 15, a Start frame image, and all eight Prompt fields: Characters, Setting and look, Camera, Action, Dialogue, Timing, Environment, Keep still (the shot's own lines only; the standard block is added automatically).
 - Characters are written `@aryan`, `@priya`, `@auto_driver`, `@shopkeeper`: lowercase with underscores, matching the Asset Library row's name. Each must be linked in the shot's Elements. The script turns them into `@Element1`, `@Element2` … and attaches that row's Face close-up and Reference Image.
 - **Places get no element.** The room, pond or road comes from the start frame, so write "The hostel room at night …", not `@hostel_room`.
+- **Kling 4.0 takes no character images.** A Kling 4.0 prompt describes people in words, without `@names`, and everyone on screen must already be in the start frame. If a shot needs a character's face to match their sheet (above all, someone walking in from off-frame), recommend Kling 3.0 to Vineet instead.
 
 ## After each run
 
