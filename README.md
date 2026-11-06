@@ -72,7 +72,7 @@ node scripts/voice.js 10-06              # make them (asks "Use about N characte
 node scripts/voice.js --voices           # the voices on the account
 ```
 
-It reads the shot's **Dialogue lines** field, or **Screenplay audio** when that is empty, written as `Priya (softly): "…" Narrator: …`. Each speaker named in `config.yaml → voice.speakers` is a line; `SFX:` and everything else is skipped. A direction in brackets becomes an Eleven v4 audio tag (`[softly] …`). If a note slips into a line (check `--print`), write the clean lines in Dialogue lines. Takes land in `out/voice/<section>/<shot>-<line>-<speaker>-take<N>.mp3` with a `.json` beside each, never overwritten, and every run is logged in `voice-log.csv`.
+It reads the shot's **Dialogue lines** field, or **Screenplay audio** when that is empty, written as `Priya (softly): "…" Narrator: …`. Each speaker named in `config.yaml → voice.speakers` is a line; `SFX:` and everything else is skipped. A direction in brackets becomes an Eleven v4 audio tag (`[softly] …`). In Dialogue lines, a note like `(audio effect: Filter → Phone)` after the file name sends that line through ElevenLabs' Phone filter (any filter in its audio effects catalog works by name). If a note slips into a line (check `--print`), write the clean lines in Dialogue lines. Takes land in `out/voice/<section>/<shot>-<line>-<speaker>-take<N>.mp3` with a `.json` beside each, never overwritten, and every run is logged in `voice-log.csv`.
 
 ## What a shot needs in Notion
 

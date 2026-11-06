@@ -14,3 +14,8 @@ time,scene,shot,line,speaker,take,file,characters,request_id,result
 "2026-11-06T11:06:30.799Z","cold_open","CO-03","3","Priya","2","CO-03-priya-2-take2.mp3","41","X1um2cM6e80fZ84YOB9n","ok"
 "2026-11-06T11:06:33.386Z","cold_open","CO-03","4","Aryan","2","CO-03-aryan-2-take2.mp3","118","vs5aFEAETPbUoFPmx3Ht","ok"
 "2026-11-06T11:06:35.099Z","cold_open","CO-03","5","Priya","2","CO-03-priya-3-take2.mp3","53","ZNaAgoO2B74cUnjSiwgO","ok"
+"2026-11-06T11:43:08.190Z","cold_open","CO-03","1","Priya","3","CO-03-priya-1-take3.mp3","30","rLXd0AVjL9UgdE7qqhUo","ok"
+"2026-11-06T11:43:09.619Z","cold_open","CO-03","2","Aryan","3","CO-03-aryan-1-take3.mp3","67","2af5MHr1BwEexml5h6rx","ok"
+"2026-11-06T11:43:10.981Z","cold_open","CO-03","3","Priya","3","CO-03-priya-2-take3.mp3","47","LOPECFb8qXcxR7YMpzFZ","ok"
+"2026-11-06T11:43:13.766Z","cold_open","CO-03","4","Aryan","3","CO-03-aryan-2-take3.mp3","118","5qf0eIenoWH1KESjEqhM","ok"
+"2026-11-06T11:43:15.265Z","cold_open","CO-03","5","Priya","3","CO-03-priya-3-take3.mp3","49","7OevnQuLGWV5wM96SY3A","ok"

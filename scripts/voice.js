@@ -113,7 +113,22 @@ if (jobs.some((j) => j.voiceName)) {
   }
 }
 
-const problems = [...new Set(jobs.filter((j) => !j.voiceId).map((j) => j.voiceProblem ?? `${j.speaker} has no voice yet (config.yaml → voice.speakers)`))];
+// A filter named in Notion ("Filter → Phone") is matched by name or id against ElevenLabs' audio effects catalog.
+const filterIds = new Map();
+if (jobs.some((j) => j.filter)) {
+  const { filterPresets } = await elevenLabs().audioEffects.getCatalog();
+  for (const j of jobs.filter((j) => j.filter)) {
+    const want = j.filter.toLowerCase();
+    const hit = filterPresets.find((f) => f.name.toLowerCase() === want || f.filterPresetId === want);
+    if (hit) j.filterId = hit.filterPresetId, filterIds.set(hit.filterPresetId, hit.name);
+    else j.filterProblem = `${j.shot.id} line ${j.n}: ElevenLabs has no audio filter called "${j.filter}" (it has ${filterPresets.map((f) => f.name).join(", ")})`;
+  }
+}
+
+const problems = [...new Set([
+  ...jobs.filter((j) => !j.voiceId).map((j) => j.voiceProblem ?? `${j.speaker} has no voice yet (config.yaml → voice.speakers)`),
+  ...jobs.filter((j) => j.filterProblem).map((j) => j.filterProblem),
+])];
 
 if (opts.print) {
   let last;
@@ -121,9 +136,9 @@ if (opts.print) {
     if (j.shot !== last) console.log(`\n===== ${j.shot.id} · from ${j.field} · ${j.shot.notion.url} =====`);
     last = j.shot;
     const voice = j.voiceId ? voiceNames.get(j.voiceId) ?? j.voiceId : "no voice";
-    console.log(`\n${String(j.n).padStart(2)}. ${j.speaker} → ${stemOf(j)}-takeN · voice ${voice} · stability ${j.stability}${j.mood ? ` (${j.mood})` : ""}`);
+    console.log(`\n${String(j.n).padStart(2)}. ${j.speaker} → ${stemOf(j)}-takeN · voice ${voice} · stability ${j.stability}${j.mood ? ` (${j.mood})` : ""}${j.filterId ? ` · filter ${filterIds.get(j.filterId)}` : ""}`);
     console.log(`    ${j.spoken}`);
-    if (j.note) console.log(`    note for the edit, not sent: ${j.note}`);
+    if (j.note) console.log(`    note: ${j.note}`);
   }
   if (problems.length) fail(`\nNot ready yet:\n  ${problems.join("\n  ")}`);
   process.exit(0);
@@ -176,6 +191,7 @@ for (const j of jobs) {
           modelId: vc.model,
           outputFormat: vc.output_format,
           voiceSettings: { stability: j.stability, similarityBoost: vc.similarity_boost },
+          ...(j.filterId && { audioEffects: { filterPresetId: j.filterId } }),
         })
         .withRawResponse();
       requestId = rawResponse.headers.get("request-id") ?? "";
@@ -196,6 +212,7 @@ for (const j of jobs) {
             model: vc.model,
             voice_settings: { stability: j.stability, similarity_boost: vc.similarity_boost },
             mood: j.mood ?? null,
+            audio_effects: j.filterId ? { filter_preset_id: j.filterId } : null,
             text: j.spoken,
             note: j.note ?? null,
             characters: Number(characters),
