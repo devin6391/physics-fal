@@ -20,7 +20,7 @@ Start and end frames are made by Vineet in Gemini (his Google AI Pro plan), not 
 ## Reading and writing Notion
 
 - **Use the Notion SDK first.** Read shots through the project (`npm run pull` for images): `node scripts/generate.js <shot> --print` shows exactly what Notion holds for a shot and what would be sent, and `--dry-run` checks it. For anything the scripts don't cover, write a small script with `@notionhq/client` and `NOTION_TOKEN` (reuse `lib/notion.js`).
-- **The Notion MCP is the fallback**, for what the SDK can't do. The integration writes only one thing: `voice.js` uploads a scene's line files to its Voice files (it needs the Update and Insert content capabilities). Other writes (filling prompt fields, logging trials, attaching clips) go through the MCP, as do pages the integration hasn't been given access to.
+- **The Notion MCP is the fallback**, for what the SDK can't do. The integration writes only files on a scene's row: `voice.js` and `sounds.js` upload approved voices and sounds, and `scripts/upload.js --scene <n> <stage>` uploads a stage's files from `out/<stage>/scene-NN/` (radio cut, storyboard, animatic, assembled scene, mix), only new or changed ones (it needs the Update and Insert content capabilities). When Claude builds a file for a scene, it writes it to that folder and tells Vineet the upload command; Claude's own session can't reach Notion's file API. Other writes (filling prompt fields, logging trials, attaching clips) go through the MCP, as do pages the integration hasn't been given access to.
 - Never copy a shot into a local file to work from. If Notion and something local disagree, Notion wins.
 
 ## Rules that must not be broken

@@ -114,6 +114,26 @@ Sounds already in Scene SFX audio are skipped (`--redo door-bang` makes one agai
 
 The kind (event, movement, bed, motif), the length (0.5–30 s) and "loop" go in the brackets; the prompt runs up to "(beat". The file is `S01-sfx-door-bang.mp3`.
 
+## Uploading a scene's files to Notion
+
+`scripts/upload.js` puts a stage's files into the right field on the scene's row in the Scenes database, so nothing is dragged in by hand.
+
+```
+node scripts/upload.js --scene 1 storyboard            # every file in out/storyboard/scene-01/ → Storyboard
+node scripts/upload.js --scene 1 animatic              # out/animatic/scene-01/ → Animatic
+node scripts/upload.js --scene 1 radio-cut             # out/radio/scene-01/ → Scene radio cut
+node scripts/upload.js --scene 1 storyboard out/storyboard/scene-01/S01-sb-05.png   # only this file
+node scripts/upload.js --scene 1 storyboard --dry-run  # what it would upload
+node scripts/upload.js --scene 1 storyboard --force    # upload again even where Notion already has the file
+```
+
+The stages and their folders: `radio-cut` (out/radio), `storyboard` (out/storyboard), `animatic` (out/animatic), `assembled` (out/assembled) and `mix` (out/mix), each in a `scene-NN/` folder; `sfx` (out/sound/scene-NN/approved) and `voice` (name the files), which `sounds.js` and `voice.js` already upload after you approve.
+
+- Only new or changed files are uploaded: a file Notion already has, unchanged since this script uploaded it, is skipped; a changed file replaces the one of the same name. What was uploaded is remembered in `.cache/notion-uploads.json`.
+- A file that is in Notion but was put there another way (by hand) is skipped unless `--force`.
+- Nothing already in the field is removed, and the field stays sorted by file name (S01-sb-2 before S01-sb-10, 13a before 13b).
+- JSON files are never uploaded. Files over 20 MB go up in parts. A free Notion workspace takes files up to 5 MB.
+
 ## What a shot needs in Notion
 
 The checker stops before anything is spent unless the shot's row has:

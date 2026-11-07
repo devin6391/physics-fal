@@ -12,7 +12,8 @@
     "generate": "node scripts/generate.js",
     "voice": "node scripts/voice.js",
     "check": "node scripts/generate.js --section \"Cold open\" --dry-run",
-    "sounds": "node scripts/sounds.js"
+    "sounds": "node scripts/sounds.js",
+    "upload": "node scripts/upload.js"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "2.76.0",

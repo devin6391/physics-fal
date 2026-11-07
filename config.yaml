@@ -30,6 +30,11 @@ notion:
     sound_script: Sound script   # every voice line of the scene, with its tags and Stability
     voice_files: Voice files     # where the cut line files are uploaded
     sfx_files: Scene SFX audio   # where the scene's sounds are uploaded (scripts/sounds.js)
+    radio_cut: Scene radio cut   # the fields scripts/upload.js fills, one per stage
+    storyboard: Storyboard
+    animatic: Animatic
+    assembled: Assembled scene
+    mix: Scene mix
   asset_fields:                  # 🎬 Asset Library
     name: Asset
     class: Class
