@@ -11,7 +11,7 @@
 //   node scripts/voice.js --scene 1 --redo priya  generate Priya again even though her lines are in Notion
 //   node scripts/voice.js --scene 1 --from-takes --approved --yes
 //                                                 Vineet has listened and approved the latest takes: cut and upload
-//                                                 without asking (for running from Claude Code, which can't answer)
+//                                                 without asking (for an assistant running it, which can't answer)
 //   node scripts/voice.js --voices                list the voices on the ElevenLabs account
 //
 // A speaker whose line files are all in the scene's Voice files already is skipped. Requests land in

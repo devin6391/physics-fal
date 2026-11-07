@@ -1,12 +1,12 @@
 # physics-fal
 
-Makes the moving clips (Kling 3.0 and Kling 4.0 on [fal.ai](https://fal.ai), one shot or section at a time) and each scene's voices and sounds (ElevenLabs) for the short film **Physics**.
+Makes the files for the short film **Physics**: each scene's voices and sounds (ElevenLabs), its radio cut, animatic, mix and assembled cut (ffmpeg), and the moving clips made on [fal.ai](https://fal.ai) (Kling 3.0 and Kling 4.0, one shot or section at a time). The editing is done here, by commands, not in an editing app.
 
 Notion is the source of truth. Every run reads the shot straight from its row in the **Shots** database (the eight prompt fields, duration, start and end frames, and its characters) and the locked character images from the **Asset Library**. There are no local copies of prompts or images to keep in sync: change something in Notion and the next run uses it. The project applies the film's rules the same way every time:
 
 - the standard **KEEP STILL** block is appended to every prompt
 - the **negative prompt** is sent with every clip
-- Kling's own **audio stays off** (sound is made separately)
+- Kling's own **sound is never used**: off on Kling 3.0, and removed in the edit for Kling 4.0, which always makes it
 - `@aryan`, `@priya` … become fal's `@Element1`, `@Element2` … with that character's face close-up and sheet attached
 - a take is **never overwritten**, and every run is logged with its cost
 
@@ -81,7 +81,7 @@ A run of `--scene 1`:
 4. Cuts each approved take at its pauses into one file per line (`out/voice/scene-01/S01-priya-all-take1/S01-priya-1.mp3` …) and lists each line's length.
 5. Asks, then uploads the line files to the scene's Voice files in Notion, keeping everything already there; a file with the same name is replaced.
 
-Takes are never overwritten and every request is logged in `voice-log.csv`. `--from-takes` skips generating and carries on from the latest takes. Claude Code can't answer the questions, so from there it runs `--print` and `--dry-run`, generation with `--yes` only for a run Vineet approved, and after he has listened: `--from-takes --approved --yes`.
+Takes are never overwritten and every request is logged in `voice-log.csv`. `--from-takes` skips generating and carries on from the latest takes. An assistant running it in its own shell (Codex, Claude Code, Gemini CLI) can't answer the questions, so it runs `--print` and `--dry-run`, generation with `--yes` only for a run Vineet approved, and after he has listened: `--from-takes --approved --yes`.
 
 ### How the Sound script is written
 
@@ -114,6 +114,131 @@ Sounds already in Scene SFX audio are skipped (`--redo door-bang` makes one agai
 
 The kind (event, movement, bed, motif), the length (0.5–30 s) and "loop" go in the brackets; the prompt runs up to "(beat". The file is `S01-sfx-door-bang.mp3`.
 
+## Building the radio cut
+
+`scripts/radio.js` lays every approved voice line and sound of a scene on one timeline and mixes it into the scene's radio cut. Nothing is generated and nothing is spent.
+
+```
+node scripts/radio.js --scene 1 --print   # every cue and its time, as read from the plan
+node scripts/radio.js --scene 1           # out/radio/scene-01/S01-radio-cut.mp3 and S01-radio-cut-cues.json
+node scripts/upload.js --scene 1 radio-cut   # after listening
+```
+
+It reads the scene's **Radio cut plan**: a YAML code block under the heading "Radio cut plan" on the scene's row page in the Scenes database. The voices and sounds come from the row's Voice files and Scene SFX audio. `--plan file.yaml` uses a local plan instead, to try a change before writing it into Notion.
+
+### The radio cut plan
+
+```yaml
+length: priya-15.end + 9.0      # where the cut ends (seconds, or a cue reference)
+fade_out: 1.5                   # seconds of fade at the end
+loudness: -16                   # LUFS of the finished cut
+filters:                        # named ffmpeg audio filters
+  phone: highpass=f=320,lowpass=f=3300
+templates:                      # settings shared by many cues (use: priya)
+  priya: { filter: phone, level: rms -21, fade: [0.01, 0.06], lane: Phone }
+cues:
+  - { file: S01-priya-1, use: priya, at: 14.0, what: "Priya 1" }
+  - { file: S01-aryan-1, level: rms -20, at: priya-1.end + 0.55 }
+  - { file: S01-aryan-7, level: rms -20, at: priya-9.start + 2.70 }    # comes in over her line
+  - { file: S01-sfx-ringtone, at: 5.0, loop: 13.5, trim: [4.5, 12.5], level: rms -24 }
+  - { file: S01-sfx-screams, at: priya-12.start + 4.78, level: rms -19, gain: "0:-20 0.35:0 12:-14 20:-90" }
+  - { mark: Motif B goes here at the mix, at: distant-thud.start }
+```
+
+- **file:** the file's name (without extension) in Voice files or Scene SFX audio. A cue's **id** is the file name without `S01-` and `sfx-` (`priya-1`, `distant-thud`), or set `id:` yourself when one file is used twice.
+- **at:** seconds, or another cue's `.start` / `.end` plus or minus seconds. Chaining lines to the line before keeps the gaps when a line is regenerated with a new length; an overlap is a start relative to the other line's start.
+- **level:** `rms -20` sets the loudness of the sounding parts; `peak -16` sets the loudest point. A file that is silent is left out, with a warning.
+- **filter**, **loop** (repeat the file to this many seconds), **trim** (`[from, to]` seconds of the file), **fade** (`[in, out]` seconds), **gain** (one number in dB, or a list `time:dB` across the cue; `-90` is silence), **lane** and **what** (for the cue list), **mark** (a timing mark with no sound).
+
+The cue list beside the radio cut gives every cue's time; the shots' Timing tables and the animatic are cut from it.
+
+## Building the animatic
+
+`scripts/animatic.js` cuts the scene's storyboard panels onto its radio cut.
+
+```
+node scripts/animatic.js --scene 1 --print   # every cut, as read from the plan
+node scripts/animatic.js --scene 1           # out/animatic/scene-01/S01-animatic.mp4
+node scripts/animatic.js --scene 1 --local   # use the panels and radio cut in out/ instead of Notion's
+node scripts/upload.js --scene 1 animatic    # after watching
+```
+
+It reads the scene's **Animatic plan** (a YAML code block under "Animatic plan" on the row page), the panels in the row's Storyboard field and the sound in its Scene radio cut.
+
+### The animatic plan
+
+```yaml
+size: 1280x720
+fps: 24
+end: radio                     # the radio cut's length (or seconds)
+fade: { color: "#460406", from: 101.2, to: 102.6 }    # optional fade to a colour
+panels:
+  - { at: 0.00, panel: S01-sb-01, beat: "1" }
+  - { at: 5.00, panel: S01-sb-02, beat: "2", zoom: [1.0, 1.10], focus: [0.45, 0.55] }
+  - { at: 21.60, panel: S01-sb-06, beat: "8 (holds 6)" }
+  - { at: 94.84, panel: S01-sb-18b, beat: "18b", dissolve: 0.5 }
+```
+
+Each panel is held from its **at** until the next one. **zoom** pushes in (or out) across the hold, toward **focus** (the point of the panel, 0 to 1 across and down); **dissolve** fades in from the panel before over that many seconds. A panel can be used again (a hold). Times come from the scene's exposure sheet (its Time column), which is taken from the radio cut. A strip along the bottom shows the time, the beat and the panel, for review notes.
+
+## Building the mix
+
+The mix is built the same way as the radio cut, from the scene's **Mix plan** (a YAML code block under "Mix plan" on the row page), once the pictures are in place: the radio cut's cues with the follow-picture sounds matched to the picture, the motifs at their marks, and the levels finished.
+
+```
+node scripts/radio.js --scene 1 --mix --print   # every cue and its time
+node scripts/radio.js --scene 1 --mix           # out/mix/scene-01/S01-mix.wav and S01-mix-cues.json
+node scripts/upload.js --scene 1 mix            # after listening
+```
+
+### The mix plan
+
+```yaml
+include: Radio cut plan          # start from the radio cut's cues, filters and templates
+loudness: -16
+drop: [footsteps-in]             # cues of the radio cut left out (by id)
+cues:
+  - { id: footsteps-in, file: S01-sfx-footsteps-in, at: 6.1, level: peak -16, lane: Movement }   # same id: replaces it, matched to the picture
+  - { asset: Motif A, at: priya-15.end + 7.0, level: peak -12, lane: Motif, what: "Motif A, one drop" }
+```
+
+Everything in the radio cut plan works here. **include** names another plan on the same page; a cue with the same id replaces that plan's cue, **drop** removes cues, every other cue is added, and settings written here (length, loudness, filters, templates) win. **asset** takes the sound from that Asset Library row's Reference Image (motifs are locked there, never per scene; `file:` picks one file when the row has several). The mix is a 24-bit wav, since the edit and the film pass build on it.
+
+## Assembling a scene
+
+`scripts/assemble.js` puts the scene's shots on its sound, as the edit plan says. Each clip's own sound is dropped; the sound is the scene's mix (or its radio cut, before the mix exists).
+
+```
+node scripts/assemble.js --scene 1 --print         # every cut and the picture it will use
+node scripts/assemble.js --scene 1                 # out/assembled/scene-01/S01-assembled.mp4
+node scripts/assemble.js --scene 1 --frame CO-07   # out/frames/CO-07-cut.png: the frame where CO-07 is cut
+node scripts/upload.js --scene 1 assembled         # after watching
+```
+
+### The edit plan
+
+A YAML code block under "Edit plan" on the scene's row page:
+
+```yaml
+size: 1280x720
+fps: 24
+audio: mix                     # the Scene mix; "radio" uses the Scene radio cut
+end: audio                     # the sound's length (or seconds)
+grade: grades/physics.cube     # optional: one LUT (a .cube file in the project) over the whole scene
+label: true                    # optional: a strip with the time and the shot, for review
+fade: { color: "#460406", from: 101.2, to: 102.6 }
+shots:
+  - { at: 0.00, shot: CO-01 }                        # a STATIC shot: its start frame, held
+  - { at: 5.00, shot: CO-02, from: 1.2 }             # its clip from 1.2 s in
+  - { at: 13.80, shot: CO-03, still: true, zoom: [1, 1.04] }   # hold the start frame, with a slow push
+  - { at: 21.60, shot: CO-05, panel: S01-sb-06 }     # no picture yet: the storyboard panel holds its place
+  - { at: 94.84, shot: CO-13, dissolve: 0.5 }
+```
+
+Each shot is held from its **at** until the next. Its picture is its **Final shot** if it has one, else its **Generated clip**, played from **from** seconds in (default `clip_handles`, 1 s, past the start of the generated handle; 0 for a Final shot), else its **Start frame** held as a still. **still: true** holds the start frame even when a clip exists (a clip that won't behave). **zoom**, **focus** and **dissolve** work as in the animatic. A clip shorter than its cut holds its last frame, with a warning. The times come from the exposure sheet's Time column and the shots' Timing tables, so the edit stays on the radio cut.
+
+`--frame CO-07` saves the frame where CO-07 is cut in this edit, for the next shot to start from (attach it to that shot's Start frame).
+
 ## Uploading a scene's files to Notion
 
 `scripts/upload.js` puts a stage's files into the right field on the scene's row in the Scenes database, so nothing is dragged in by hand.
@@ -139,7 +264,7 @@ The stages and their folders: `radio-cut` (out/radio), `storyboard` (out/storybo
 The checker stops before anything is spent unless the shot's row has:
 
 - **Model** set to Kling 3.0 or Kling 4.0 (see below)
-- **Duration (s)**: a whole number from 3 to 15
+- **Duration (s)**: the shot's length in the scene, cut from the radio cut (it can have decimals). The clip is generated `clip_handles` seconds (config.yaml, 1) longer at each end and rounded up to whole seconds, at most 15; the edit uses the middle. `--print` shows both lengths.
 - **Start frame** (and optionally **End frame**): a png, jpg or webp image. A reused frame is uploaded to this shot's own field too, so the row says exactly what is sent.
 - all eight **Prompt:** fields filled in (Characters, Setting and look, Camera, Action, Dialogue, Timing, Environment, Keep still). Keep still holds the shot's own lines only; the standard block is added automatically.
 - every `@name` in the prompt linked in the shot's **Elements**, as an Asset Library row whose Class is Character and which has a **Face close-up** and a **Reference Image**
@@ -167,11 +292,16 @@ Use **Kling 3.0** whenever a character's face has to match their sheet, above al
 
 | File | What it is |
 | --- | --- |
-| `config.yaml` | The fal models (endpoint, price) for each Notion Model, audio off, parallel runs, the negative prompt, the standard KEEP STILL block, and the Notion field names the project reads |
+| `config.yaml` | The fal models (endpoint, price) for each Notion Model, Kling 3.0's audio off, the clip handles, parallel runs, the negative prompt, the standard KEEP STILL block, and the Notion field names the project reads |
 | `scripts/pull.js` | Downloads shots' images from Notion into `.cache/notion/` |
 | `scripts/generate.js` | The generator |
 | `scripts/voice.js` | Makes a scene's dialogue on ElevenLabs, cuts it into line files and uploads them to Notion |
 | `scripts/sounds.js` | Makes a scene's other sounds on ElevenLabs Sound Effects and uploads them to Notion |
+| `scripts/radio.js` | Builds a scene's radio cut, or with `--mix` its mix, from the plan on its row page |
+| `scripts/animatic.js` | Builds a scene's animatic from its storyboard panels and radio cut |
+| `scripts/assemble.js` | Assembles a scene from its shots' clips and stills, on its mix |
+| `scripts/upload.js` | Uploads a stage's files to the scene's row in Notion |
+| `lib/video.js` | The picture side of the animatic and the assembled scene (ffmpeg) |
 | `lib/voice.js` | Reads a scene's Sound script: the voice requests and the SOUNDS list |
 | `lib/audio.js` | Finds the pauses and cuts a request into line files (ffmpeg) |
 | `lib/notion.js` | Reads shots, characters and scenes from Notion with the Notion SDK, downloads images (for pull) and uploads voice files |

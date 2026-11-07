@@ -1,0 +1,10 @@
+{
+  "context": {
+    "fileName": ["AGENTS.md", "GEMINI.md"]
+  },
+  "mcpServers": {
+    "notion": {
+      "httpUrl": "https://mcp.notion.com/mcp"
+    }
+  }
+}

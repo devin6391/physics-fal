@@ -1,0 +1,4 @@
+# Codex settings for this project (read when Codex runs here and the project is trusted).
+# Notion's MCP server, so Codex can read and write the film's Notion pages. Sign in once: codex mcp login notion
+[mcp_servers.notion]
+url = "https://mcp.notion.com/mcp"

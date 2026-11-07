@@ -14,6 +14,9 @@ notion:
     start_frame: Start frame
     end_frame: End frame
     elements: Elements
+    type: Type
+    generated_clip: Generated clip   # the clips scripts/assemble.js puts in the edit
+    final_shot: Final shot
     prompt:
       characters: "Prompt: Characters"
       setting: "Prompt: Setting and look"
@@ -35,6 +38,7 @@ notion:
     animatic: Animatic
     assembled: Assembled scene
     mix: Scene mix
+  assets_data_source: d7aed21e-c389-42a2-aab9-fdeb0a420334   # 🎬 Asset Library
   asset_fields:                  # 🎬 Asset Library
     name: Asset
     class: Class
@@ -49,11 +53,17 @@ models:
     endpoint: fal-ai/kling-video/v3/pro/image-to-video
     request: kling-v3
     usd_per_second: 0.112        # audio off ($0.168 with audio)
+    max_seconds: 15
   Kling 4.0:
     endpoint: fal-ai/kling-video/v4/image-to-video
     request: kling-v4            # no character elements, negative prompt or audio setting on fal
     usd_per_second: 0.157
     resolution: 1080p            # 720p or 1080p
+    max_seconds: 15
+
+# A clip is generated this many seconds longer at each end than its length in the scene (Duration in
+# Notion), rounded up to whole seconds; the edit uses the middle, where clips are cleanest.
+clip_handles: 1
 
 # Sound is made separately (voices, SFX, beds), so Kling's own audio stays off.
 # Kling 4.0 on fal has no audio setting, so this applies to Kling 3.0 only.

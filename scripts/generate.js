@@ -20,7 +20,7 @@ import { parseArgs } from "node:util";
 import { fal } from "@fal-ai/client";
 import { loadConfig, fromRoot } from "../lib/project.js";
 import { SECTIONS, assemblePrompt, toFalElements } from "../lib/prompt.js";
-import { validate } from "../lib/validate.js";
+import { validate, genSeconds } from "../lib/validate.js";
 import { makeNotion, localCopy, slug, onFal } from "../lib/notion.js";
 import { makeUploader } from "../lib/uploads.js";
 
@@ -86,7 +86,8 @@ const jobs = shots.map((shot) => {
     // Kling 4.0 on fal has no negative prompt or audio setting.
     negative: v3 ? config.negative_prompt : null,
     audioLabel: v3 ? (audio ? "on" : "off") : "no setting",
-    cost: Number(shot.duration) * (model?.usd_per_second ?? 0),
+    seconds: genSeconds(shot, config),
+    cost: genSeconds(shot, config) * (model?.usd_per_second ?? 0),
     outDir: `out/${slug(shot.section) || "unsorted"}`,
   };
 });
@@ -95,7 +96,7 @@ const problems = validate(shots, config);
 
 if (opts.print) {
   for (const j of jobs) {
-    console.log(`\n===== ${j.shot.id} · ${j.shot.model ?? "no Model"} · ${j.shot.duration} s · audio ${j.audioLabel} · ${j.shot.notion.url} =====`);
+    console.log(`\n===== ${j.shot.id} · ${j.shot.model ?? "no Model"} · ${j.shot.duration} s in the scene, generated ${j.seconds} s · audio ${j.audioLabel} · ${j.shot.notion.url} =====`);
     console.log(`Start frame: ${j.shot.start_frame?.name ?? "(empty)"}${j.shot.end_frame ? `   End frame: ${j.shot.end_frame.name}` : ""}`);
     j.names.forEach((n, i) => console.log(`@Element${i + 1} = ${n}`));
     console.log(`\n${j.prompt}`);
@@ -131,7 +132,7 @@ const total = jobs.reduce((sum, j) => sum + j.cost, 0) * takes;
 console.log(`${opts.section ? `Section ${opts.section}: ` : ""}${jobs.length} shot(s) × ${takes} take(s)`);
 for (const j of jobs) {
   const els = j.names.length ? `  elements: ${j.names.join(", ")}` : "";
-  console.log(`  ${j.shot.id.padEnd(8)} ${j.shot.model.padEnd(10)} ${String(j.shot.duration).padStart(2)} s  $${(j.cost * takes).toFixed(2)}${els}`);
+  console.log(`  ${j.shot.id.padEnd(8)} ${j.shot.model.padEnd(10)} ${String(j.seconds).padStart(2)} s  $${(j.cost * takes).toFixed(2)}${els}`);
 }
 console.log(`Total: about $${total.toFixed(2)}`);
 if (opts["dry-run"]) process.exit(0);
@@ -169,7 +170,7 @@ if (!existsSync(logPath)) appendFileSync(logPath, "time,scene,shot,model,take,fi
 // The request body for each kind of model, matching its schema on fal.
 function buildInput(run, urls) {
   if (run.model.request === "kling-v4") {
-    const input = { prompt: run.prompt, start_image_url: urls.start, duration: Number(run.shot.duration) };
+    const input = { prompt: run.prompt, start_image_url: urls.start, duration: run.seconds };
     if (urls.end) input.end_image_url = urls.end;
     if (run.model.resolution) input.resolution = run.model.resolution;
     return input;
@@ -177,7 +178,7 @@ function buildInput(run, urls) {
   const input = {
     prompt: run.prompt,
     start_image_url: urls.start,
-    duration: String(run.shot.duration),
+    duration: String(run.seconds),
     generate_audio: audio,
     negative_prompt: run.negative,
   };
@@ -233,7 +234,8 @@ async function runOne(run) {
           model: shot.model,
           endpoint: run.model.endpoint,
           request_id: requestId,
-          duration: shot.duration,
+          duration: run.seconds,
+          scene_length: shot.duration,
           audio: run.audioLabel,
           resolution: run.model.resolution ?? null,
           start_frame: shot.start_frame.name,
@@ -268,7 +270,7 @@ async function runOne(run) {
 }
 
 function log(run, file, wait, requestId, result) {
-  const cells = [new Date().toISOString(), slug(run.shot.section), run.shot.id, run.shot.model, run.take, file, run.shot.duration, run.audioLabel,
+  const cells = [new Date().toISOString(), slug(run.shot.section), run.shot.id, run.shot.model, run.take, file, run.seconds, run.audioLabel,
     result === "ok" ? run.cost.toFixed(2) : "0", wait, requestId, result];
   appendFileSync(logPath, cells.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(",") + "\n");
 }

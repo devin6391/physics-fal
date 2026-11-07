@@ -2,7 +2,7 @@
   "name": "physics-fal",
   "version": "1.0.0",
   "private": true,
-  "description": "Generates the Kling 3.0 clips for the short film \"Physics\" on fal.ai, one scene at a time.",
+  "description": "Makes the files for the short film \"Physics\": voices, sounds, radio cut, animatic, mix and assembled cut for each scene, and its Kling clips on fal.ai.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -13,7 +13,11 @@
     "voice": "node scripts/voice.js",
     "check": "node scripts/generate.js --section \"Cold open\" --dry-run",
     "sounds": "node scripts/sounds.js",
-    "upload": "node scripts/upload.js"
+    "upload": "node scripts/upload.js",
+    "radio": "node scripts/radio.js",
+    "animatic": "node scripts/animatic.js",
+    "mix": "node scripts/radio.js --mix",
+    "assemble": "node scripts/assemble.js"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "2.76.0",
