@@ -11,7 +11,8 @@
     "pull": "node scripts/pull.js",
     "generate": "node scripts/generate.js",
     "voice": "node scripts/voice.js",
-    "check": "node scripts/generate.js --section \"Cold open\" --dry-run"
+    "check": "node scripts/generate.js --section \"Cold open\" --dry-run",
+    "sounds": "node scripts/sounds.js"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "2.76.0",

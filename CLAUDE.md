@@ -9,7 +9,9 @@ Notion is the source of truth. Every run reads the shot's prompt, duration, fram
 Images go Notion → Mac → fal, in two separate steps. `npm run pull -- <shots>` downloads a shot's images into `.cache/notion/`; `generate.js` never downloads, and uploads to fal only from those local copies. If generate stops with "These images aren't on this Mac yet", run the pull command it prints, then run generate again. If the pull itself reports a problem, the image is missing or unusable in Notion: tell Vineet which field on which row.
 
 - **Shots database:** one row per shot, holding the approved prompt sections, frames and clips. https://app.notion.com/p/a1d5ee3618a54315ad3564098a704a8c
-- **Film Structure (Scenes):** one row per scene, with the scene's production plan and sound plan. https://app.notion.com/p/860e5425a76c43d08cd09837ac1f5272
+- **Film Structure (Scenes):** one row per scene: its exposure sheet (on the page), its Sound script (every voice line, with tags and Stability) and its Voice files. https://app.notion.com/p/860e5425a76c43d08cd09837ac1f5272
+- **Screenplay (Scene-by-Scene):** the source of truth for what happens and is heard; every change starts there. https://app.notion.com/p/411252f6b4ff814ca042edabbb24cc14
+- **How we make the film:** the stages, who does what, and the words used. https://app.notion.com/p/411252f6b4ff81cba517c8d8e7f272c1
 - **Asset Library:** the locked character sheets and face close-ups. https://app.notion.com/p/6a739b18341e46e59663a3485c530700
 - **Shot Production Playbook:** the full production rules. https://app.notion.com/p/400252f6b4ff81c0be66c3c487b394e6
 
@@ -18,14 +20,14 @@ Start and end frames are made by Vineet in Gemini (his Google AI Pro plan), not 
 ## Reading and writing Notion
 
 - **Use the Notion SDK first.** Read shots through the project (`npm run pull` for images): `node scripts/generate.js <shot> --print` shows exactly what Notion holds for a shot and what would be sent, and `--dry-run` checks it. For anything the scripts don't cover, write a small script with `@notionhq/client` and `NOTION_TOKEN` (reuse `lib/notion.js`).
-- **The Notion MCP is the fallback**, for what the SDK can't do: the integration is read-only, so writes (filling prompt fields, logging trials, attaching clips) go through the MCP for now, as do pages the integration hasn't been given access to.
+- **The Notion MCP is the fallback**, for what the SDK can't do. The integration writes only one thing: `voice.js` uploads a scene's line files to its Voice files (it needs the Update and Insert content capabilities). Other writes (filling prompt fields, logging trials, attaching clips) go through the MCP, as do pages the integration hasn't been given access to.
 - Never copy a shot into a local file to work from. If Notion and something local disagree, Notion wins.
 
 ## Rules that must not be broken
 
 1. **Never spend money without Vineet's explicit OK** on that shot's prompt. Before any real run, show `--print` and `--dry-run` output; only run for real when he says so. The script's "Spend about $X?" question cannot be answered from Claude's shell, so a real run needs `--yes`; use it only for the exact run he approved (same shots, same takes, same cost), never otherwise.
-2. **Shot IDs never change.** When a shot is split, the pieces get letters (CO-02 → CO-02a, CO-02b, CO-02c). Never renumber shots; edit order lives in Notion's Order field.
-3. **Kling's audio stays off.** Voices, sound effects and beds are made separately and mixed in CapCut. `audio: false` in `config.yaml` applies to every Kling 3.0 shot; never change it. Kling 4.0 on fal has no audio setting: when reviewing a Kling 4.0 clip, check whether it came back with sound, and say so.
+2. **Shots are defined in the Shots database.** Their IDs are working labels and a scene can be re-broken whenever it changes; edit order lives in Notion's Order field. Never invent or rename shots from here.
+3. **Kling's audio stays off.** All sound belongs to the scene: voices, sound effects and beds are made separately and the scene is assembled from its exposure sheet. `audio: false` in `config.yaml` applies to every Kling 3.0 shot; never change it. Kling 4.0 on fal has no audio setting: when reviewing a Kling 4.0 clip, check whether it came back with sound, and say so.
 4. **Never overwrite or delete a take.** `out/` keeps every take; `log.csv` keeps every run, including failures.
 5. **The fal key and the Notion token live only in `.env`.** Never print it, log it, commit it, or put it in Notion or chat.
 6. **Do not change the KEEP STILL standard block or the negative prompt** in `config.yaml` without asking. They were written to stop specific failures (a duplicated phone, faces drifting, people looking into the lens). The same goes for `models:` (endpoints, prices) and the Notion field names in `config.yaml`: a different model changes the price and the look.
@@ -41,7 +43,11 @@ Start and end frames are made by Vineet in Gemini (his Google AI Pro plan), not 
 
 ## Voices
 
-`scripts/voice.js` makes the dialogue on ElevenLabs (see README → Making voices); the key is `ELEVENLABS_API_KEY` in `.env` and follows rule 5. The same spending rule applies: show `--print` and `--dry-run`, and run for real (with `--yes`) only for the exact lines Vineet approved. Which voice plays which character is his call.
+`scripts/voice.js --scene <n>` makes a scene's dialogue on ElevenLabs from its Sound script (see README → Making voices); the key is `ELEVENLABS_API_KEY` in `.env` and follows rule 5. The voice rules come from the Playbook and are built into the script: one request per speaker per Stability per scene, lines separated by `[long pause]`, one take, Similarity 75%, Eleven v4. It skips speakers whose line files are already in the scene's Voice files.
+
+`scripts/sounds.js --scene <n>` does the same for the scene's other sounds, from the SOUNDS section of the Sound script, uploading to Scene SFX audio; motifs are never generated there.
+
+The same spending rule applies to both: show `--print` and `--dry-run`, and generate (with `--yes`) only for the exact requests Vineet approved. Never answer the listening question for him: after a run, give him the file paths, and only when he says they are good run `--from-takes --approved --yes` to cut and upload. Which voice plays which character is his call; the lines, tags and Stability are written in Notion, never edited here.
 
 ## After each run
 
@@ -56,5 +62,5 @@ Every generation is a trial. Report to Vineet: which shot and take, the cost, an
 
 ## Code
 
-- Node.js 20+, ES modules, four dependencies (`@fal-ai/client`, `@notionhq/client`, `yaml`, `dotenv`). Keep it that small.
-- After any code change, run `npm run check` (the cold open's dry run) and `--print` on a shot to check that nothing broke. Problems reported as "… in Notion" (an empty field, a missing start frame, a place written as `@name`) are content to fix in Notion, not code bugs.
+- Node.js 20+, ES modules, five dependencies (`@fal-ai/client`, `@notionhq/client`, `@elevenlabs/elevenlabs-js`, `yaml`, `dotenv`), plus ffmpeg on the Mac for cutting voice lines. Keep it that small.
+- After any code change, run `npm run check` (the cold open's dry run), `--print` on a shot, and `node scripts/voice.js --scene 1 --print` to check that nothing broke. Problems reported as "… in Notion" (an empty field, a missing start frame, a place written as `@name`) are content to fix in Notion, not code bugs.

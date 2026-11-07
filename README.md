@@ -1,6 +1,6 @@
 # physics-fal
 
-Generates the Kling 3.0 and Kling 4.0 clips for the short film **Physics** on [fal.ai](https://fal.ai), one shot or section at a time.
+Makes the moving clips (Kling 3.0 and Kling 4.0 on [fal.ai](https://fal.ai), one shot or section at a time) and each scene's voices and sounds (ElevenLabs) for the short film **Physics**.
 
 Notion is the source of truth. Every run reads the shot straight from its row in the **Shots** database (the eight prompt fields, duration, start and end frames, and its characters) and the locked character images from the **Asset Library**. There are no local copies of prompts or images to keep in sync: change something in Notion and the next run uses it. The project applies the film's rules the same way every time:
 
@@ -27,11 +27,12 @@ cp .env.example .env      # then fill in the keys
 
 ### Notion setup
 
-1. Go to **notion.so/profile/integrations** → **New integration**. Name it `physics-fal`, pick your workspace, type **Internal**. It only needs **Read content**.
+1. Go to **notion.so/profile/integrations** → **New integration**. Name it `physics-fal`, pick your workspace, type **Internal**. Give it **Read content**, **Update content** and **Insert content** (the voice script uploads line files to a scene's Voice files).
 2. Copy its **Internal Integration Secret** into `.env` as `NOTION_TOKEN=`.
-3. Give it access to two databases. In Notion, open each one → **•••** (top right) → **Connections** → add `physics-fal`:
+3. Give it access to three databases. In Notion, open each one → **•••** (top right) → **Connections** → add `physics-fal`:
    - 🎥 Shots
    - 🎬 Asset Library
+   - 🎞 Film Structure — Scenes
 
 ## Making clips
 
@@ -63,16 +64,55 @@ Results:
 
 ## Making voices
 
-The dialogue is made on [ElevenLabs](https://elevenlabs.io), one audio file per spoken line, and mixed in CapCut with the rest of the sound. Its key is `ELEVENLABS_API_KEY` in `.env`, with the others.
+The dialogue is made on [ElevenLabs](https://elevenlabs.io) one scene at a time, from the scene's **Sound script** in the Scenes database (Film Structure). Each speaker's lines in a scene go in one request, separated by `[long pause]`, so the voice stays the same from line to line; a speaker with lines at two Stability levels gets one request per level. Needs `ELEVENLABS_API_KEY` in `.env` and ffmpeg on the Mac (`brew install ffmpeg`).
 
 ```bash
-node scripts/voice.js 10-06 --print      # each line and who says it, as read from Notion (free)
-node scripts/voice.js 10-06 --dry-run    # check every speaker has a voice, show the characters it uses (free)
-node scripts/voice.js 10-06              # make them (asks "Use about N characters?" first)
-node scripts/voice.js --voices           # the voices on the account
+node scripts/voice.js --scene 1 --print      # every line, its file name and its request, as read from Notion (free)
+node scripts/voice.js --scene 1 --dry-run    # check the voices and the Phone filter, show the characters (free)
+node scripts/voice.js --scene 1              # the whole flow, below
+node scripts/voice.js --voices               # the voices on the account
 ```
 
-It reads the shot's **Dialogue lines** field, or **Screenplay audio** when that is empty, written as `Priya (softly): "…" Narrator: …`. Each speaker named in `config.yaml → voice.speakers` is a line; `SFX:` and everything else is skipped. A direction in brackets becomes an Eleven v4 audio tag (`[softly] …`). In Dialogue lines, a note like `(audio effect: Filter → Phone)` after the file name sends that line through ElevenLabs' Phone filter (any filter in its audio effects catalog works by name). If a note slips into a line (check `--print`), write the clean lines in Dialogue lines. Takes land in `out/voice/<section>/<shot>-<line>-<speaker>-take<N>.mp3` with a `.json` beside each, never overwritten, and every run is logged in `voice-log.csv`.
+A run of `--scene 1`:
+
+1. Reads the Sound script and the scene's **Voice files**. A speaker whose line files are all there already (S01-aryan-1 … S01-aryan-9) is skipped; `--redo aryan` makes them again.
+2. Asks "Use about N ElevenLabs characters?", then makes one take of each request: `out/voice/scene-01/S01-priya-all-take1.mp3`, with a `.json` of exactly what was sent.
+3. Waits while you listen. Answer `y` if all are good, or name the ones to make again (`priya, hostel boy c`), or `n` to stop and come back later with `--from-takes`.
+4. Cuts each approved take at its pauses into one file per line (`out/voice/scene-01/S01-priya-all-take1/S01-priya-1.mp3` …) and lists each line's length.
+5. Asks, then uploads the line files to the scene's Voice files in Notion, keeping everything already there; a file with the same name is replaced.
+
+Takes are never overwritten and every request is logged in `voice-log.csv`. `--from-takes` skips generating and carries on from the latest takes. Claude Code can't answer the questions, so from there it runs `--print` and `--dry-run`, generation with `--yes` only for a run Vineet approved, and after he has listened: `--from-takes --approved --yes`.
+
+### How the Sound script is written
+
+```
+ARYAN (Calm 50%; …)                                  a speaker heading in capitals: name, Stability
+1. [eager] सच? टिकट ले ली? कौन-सी bus है? (beat 13; …)  a line: what is sent, then the note from "(beat"
+PRIYA (Calm 50%; …; Filter → Phone)                  "Filter → Phone" sends all her lines through the Phone filter
+HOSTEL BOYS (off-screen)
+1. Hostel boy 1 (Hostel boy A, Breaking 25%): […] …   a line naming its own voice and Stability
+```
+
+Every voice named needs an id in `config.yaml → voice.speakers`. Line files are named by scene, voice and number: `S01-aryan-3` is Aryan's third line in scene 1.
+
+## Making a scene's sounds
+
+Every other sound the scene needs (event sounds, movement, beds) is made on ElevenLabs Sound Effects from the **SOUNDS** section of the same Sound script, one generation per sound, and uploaded to the scene's **Scene SFX audio**. It works like the voices:
+
+```bash
+node scripts/sounds.js --scene 1 --print      # every sound, its prompt, length and loop (free)
+node scripts/sounds.js --scene 1 --dry-run    # the credits it would use (about 40 per second of sound)
+node scripts/sounds.js --scene 1              # generate, listen and approve (or name the ones to redo), upload
+```
+
+Sounds already in Scene SFX audio are skipped (`--redo door-bang` makes one again), and `--from-takes` / `--approved` work as for the voices. Motifs are listed but never generated here: they are made once and locked in the Asset Library. A SOUNDS line reads:
+
+```
+2. door-bang (event, 1.5 s): A wooden hostel room door flung open hard, … (beat 2)
+18. room-night (bed, 30 s, loop): A small hostel room at night: … (beats 2–18)
+```
+
+The kind (event, movement, bed, motif), the length (0.5–30 s) and "loop" go in the brackets; the prompt runs up to "(beat". The file is `S01-sfx-door-bang.mp3`.
 
 ## What a shot needs in Notion
 
@@ -110,8 +150,11 @@ Use **Kling 3.0** whenever a character's face has to match their sheet, above al
 | `config.yaml` | The fal models (endpoint, price) for each Notion Model, audio off, parallel runs, the negative prompt, the standard KEEP STILL block, and the Notion field names the project reads |
 | `scripts/pull.js` | Downloads shots' images from Notion into `.cache/notion/` |
 | `scripts/generate.js` | The generator |
-| `scripts/voice.js` | Makes the dialogue on ElevenLabs |
-| `lib/notion.js` | Reads shots and characters from Notion with the Notion SDK, and downloads their images (for pull) |
+| `scripts/voice.js` | Makes a scene's dialogue on ElevenLabs, cuts it into line files and uploads them to Notion |
+| `scripts/sounds.js` | Makes a scene's other sounds on ElevenLabs Sound Effects and uploads them to Notion |
+| `lib/voice.js` | Reads a scene's Sound script: the voice requests and the SOUNDS list |
+| `lib/audio.js` | Finds the pauses and cuts a request into line files (ffmpeg) |
+| `lib/notion.js` | Reads shots, characters and scenes from Notion with the Notion SDK, downloads images (for pull) and uploads voice files |
 | `lib/` (the rest) | Prompt assembly, checks and the upload cache |
 
 ## How images move

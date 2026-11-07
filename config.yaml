@@ -23,8 +23,13 @@ notion:
       timing: "Prompt: Timing"
       environment: "Prompt: Environment"
       keep_still: "Prompt: Keep still"
-    dialogue_lines: Dialogue lines       # what is spoken, for voice.js; when empty, voice.js reads Screenplay audio
-    screenplay_audio: Screenplay audio
+  scenes_data_source: f03b3f2a-b9f4-432a-9b8f-9ce47e41d4d9   # 🎞 Film Structure — Scenes
+  scene_fields:                  # 🎞 Film Structure — Scenes, for scripts/voice.js
+    scene_no: Scene No
+    scene: Scene
+    sound_script: Sound script   # every voice line of the scene, with its tags and Stability
+    voice_files: Voice files     # where the cut line files are uploaded
+    sfx_files: Scene SFX audio   # where the scene's sounds are uploaded (scripts/sounds.js)
   asset_fields:                  # 🎬 Asset Library
     name: Asset
     class: Class
@@ -71,16 +76,34 @@ keep_still_standard: >-
   unless DIALOGUE says so. The light stays as set. Normal speed, no slow motion.
   No text, subtitles, logos or watermark.
 
-# Voices for the dialogue, made on ElevenLabs by scripts/voice.js (mixed in CapCut, like all sound).
-# Each speaker as written in Notion ("Priya (softly): …") needs a voice id here. These are first
-# picks from the account's Hindi voices to audition; swap any id (node scripts/voice.js --voices lists them).
+# Voices for the dialogue, made on ElevenLabs by scripts/voice.js from a scene's Sound script in Notion.
+# Every speaker or voice the Sound script names needs a voice id here (node scripts/voice.js --voices lists them).
+# Which voice plays which character is Vineet's call. Stability comes from the Sound script, line by line.
 voice:
   model: eleven_v4
   output_format: mp3_44100_128
-  stability: 0.5           # lower = more emotional range, higher = steadier
   similarity_boost: 0.75
+  pause: "[long pause]"          # put between a speaker's lines in one request; the lines are cut apart at these pauses
+  split:                         # how the pauses are found (ffmpeg silencedetect) and how much room each line keeps
+    silence_db: -40
+    min_silence: 0.35
+    lead: 0.05
+    tail: 0.2
   speakers:
-    Aryan: xoiRqQNYNTfj1xSWG43x      # Krish - Nervous, Anxious Character
-    Priya: X1aCu8g69vgtNfFwu68G      # Neha P - Expressive Customer Care
-    Narrator: x3I60lc1eeBSTsQ7sT6I   # Danish Khan - Deep, Tense, Anticipatory
-    Gudda:                           # not chosen yet: the voice that shouldn't exist
+    Aryan: xoiRqQNYNTfj1xSWG43x          # Krish
+    Priya: X1aCu8g69vgtNfFwu68G          # Neha P (her lines go through the Phone filter in the cold open)
+    Narrator: JgIX0wzVL9nMx64BRm05
+    Auto driver: x3I60lc1eeBSTsQ7sT6I
+    Shopkeeper: XxQtFmwKGEygx1x7UMJ5
+    Hostel boy A: KfwNTJ4LG6Kz5gi0fnqc
+    Hostel boy B: 31T7D6zKHWBWvJlibBzI
+    Hostel boy C: u3v81nA6jgD2f8PNeClc
+    Gudda:                               # not chosen yet: the voice that shouldn't exist
+
+# Every other sound a scene needs, made on ElevenLabs Sound Effects by scripts/sounds.js from the SOUNDS
+# section of the scene's Sound script. Motifs are made once and locked in the Asset Library, never here.
+sound:
+  model: eleven_text_to_sound_v3
+  output_format: mp3_44100_128
+  prompt_influence: 0.3          # higher follows the prompt more closely, with less variety
+  credits_per_second: 40         # ElevenLabs' price when the length is set
