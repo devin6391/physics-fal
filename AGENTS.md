@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for any AI assistant working in this project (Codex, Claude Code, Gemini CLI or another). `CLAUDE.md` and `GEMINI.md` only point here, so every assistant reads the same rules. Nothing in the project depends on one assistant: what any of them can do depends only on whether it has Notion connected and a shell here.
+Instructions for any AI assistant working in this project (Codex, Claude Code, Antigravity or another). `CLAUDE.md` and `GEMINI.md` only point here, so every assistant reads the same rules. Nothing in the project depends on one assistant: what any of them can do depends only on whether it has Notion connected and a shell here.
 
 This project makes the files for **Physics**, a Hindi/Hinglish AI horror short film made by Vineet: each scene's voices and sounds (ElevenLabs), its radio cut, animatic, mix and assembled cut, and the moving clips made on fal.ai (Kling 3.0 or Kling 4.0; the shot's Model in Notion decides). The editing and mixing are done by these commands, never in an editing app, so any assistant can redo them. Read `README.md` for how each command works.
 
@@ -21,15 +21,15 @@ Start and end frames, storyboard panels and stills are made by Vineet in Gemini,
 
 ## Setting up an assistant
 
-Each assistant finds its Notion connection (Notion's MCP server, `https://mcp.notion.com/mcp`) in the project; sign in to Notion once:
+Each assistant connects to Notion through Notion's MCP server, `https://mcp.notion.com/mcp`; sign in to Notion once:
 
 | Assistant | Reads | Notion | Once |
 | --- | --- | --- | --- |
 | Codex | `AGENTS.md` | `.codex/config.toml` | trust the project, then `codex mcp login notion` |
 | Claude Code | `CLAUDE.md` → `AGENTS.md` | `.mcp.json` | approve the server, then `/mcp` and sign in |
-| Gemini CLI | `AGENTS.md`, `GEMINI.md` (`.gemini/settings.json`) | `.gemini/settings.json` | `/mcp auth notion` |
+| Antigravity | `AGENTS.md` (and `GEMINI.md`) | its own MCP settings, not in the project: add Notion's server there once | sign in when it asks |
 
-Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same folders for Claude Code. Chat apps (ChatGPT, claude.ai, the Gemini app) have no shell here: they write in Notion and give Vineet the commands. The full guide, with instructions to paste into a chat app, is the Notion page **Setting up an assistant**: https://app.notion.com/p/411252f6b4ff818e80f6c76d9cee7da8
+Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same folders for Claude Code. Chat apps (ChatGPT, claude.ai) have no shell here: they write in Notion and give Vineet the commands. The full guide, with instructions to paste into a chat app, is the Notion page **Setting up an assistant**: https://app.notion.com/p/411252f6b4ff818e80f6c76d9cee7da8
 
 ## The commands, by stage
 

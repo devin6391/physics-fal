@@ -81,7 +81,7 @@ A run of `--scene 1`:
 4. Cuts each approved take at its pauses into one file per line (`out/voice/scene-01/S01-priya-all-take1/S01-priya-1.mp3` …) and lists each line's length.
 5. Asks, then uploads the line files to the scene's Voice files in Notion, keeping everything already there; a file with the same name is replaced.
 
-Takes are never overwritten and every request is logged in `voice-log.csv`. `--from-takes` skips generating and carries on from the latest takes. An assistant running it in its own shell (Codex, Claude Code, Gemini CLI) can't answer the questions, so it runs `--print` and `--dry-run`, generation with `--yes` only for a run Vineet approved, and after he has listened: `--from-takes --approved --yes`.
+Takes are never overwritten and every request is logged in `voice-log.csv`. `--from-takes` skips generating and carries on from the latest takes. An assistant running it in its own shell (Codex, Claude Code, Antigravity) can't answer the questions, so it runs `--print` and `--dry-run`, generation with `--yes` only for a run Vineet approved, and after he has listened: `--from-takes --approved --yes`.
 
 ### How the Sound script is written
 
