@@ -34,6 +34,51 @@ cp .env.example .env      # then fill in the keys
    - 🎬 Asset Library
    - 🎞 Film Structure — Scenes
 
+## Gemini reference images
+
+Download the exact input images for a shot's Gemini frame prompt, in upload order:
+
+```bash
+npm run refs -- CO-01 --frame end --print  # inspect the reference list (no downloads)
+npm run refs -- CO-01 --frame end          # out/refs/CO-01/end/
+npm run refs -- CO-04 --frame start        # another shot's configured start-frame inputs
+```
+
+This command uses the Notion SDK and `NOTION_TOKEN` only. It does not use AI,
+MCP, Gemini or generation credits. The existing `pull` command is for fal's
+clip inputs; `refs` is for the images Vineet uploads to Gemini.
+
+The shot page holds a YAML code block under **Gemini references**. Each `start`
+or `end` list matches the numbered uploads in that frame's prompt. An entry has
+`label` (a short filename label), `page` (Notion page ID or URL), `field` (the
+exact files-property name), and `file` (the exact attachment name). Example:
+
+```yaml
+end:
+  - label: storyboard-panel
+    page: <scene-page-id>
+    field: Storyboard
+    file: <exact-panel-filename.png>
+  - label: character-face
+    page: <character-asset-page-id>
+    field: Face close-up
+```
+
+`file` can be omitted only if the field contains exactly one attachment. The
+command stops for a missing or ambiguous reference instead of guessing. When
+an assistant writes or changes a frame prompt, it must keep this list in sync
+with the prompt's upload order. Reused cut frames must exist in their specified
+Notion field before the command can download them. The command reports a
+missing list rather than trying to interpret prose.
+
+Files are numbered `01-…`, `02-…` in `out/refs/<shot>/<start|end>/`; upload the
+current files listed by the command in that order. Existing non-empty files
+are skipped. Filenames include a source identity, so a replacement attachment
+gets a new filename and older copies are preserved. Old files can remain in
+the folder: use the command's current list, not every file in the directory.
+Only images are saved locally, not copies of the shot, prompt or reference plan.
+Notion remains the source of truth. CO-01's end-frame list is configured there.
+
 ## Making clips
 
 ```bash

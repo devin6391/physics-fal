@@ -9,6 +9,7 @@
   },
   "scripts": {
     "pull": "node scripts/pull.js",
+    "refs": "node scripts/refs.js",
     "generate": "node scripts/generate.js",
     "voice": "node scripts/voice.js",
     "check": "node scripts/generate.js --section \"Cold open\" --dry-run",

@@ -48,6 +48,7 @@ Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same fold
 ## Reading and writing Notion
 
 - **Use the Notion SDK first** (`@notionhq/client` with `NOTION_TOKEN`; reuse `lib/notion.js`). `node scripts/generate.js <shot> --print` shows what Notion holds for a shot and what would be sent; `--dry-run` checks it.
+- When writing a Gemini frame prompt, keep its ordered input images in the shot page's **Gemini references** YAML block (format in `README.md`). `npm run refs -- <shot> --frame start|end` downloads those images to `out/refs/<shot>/`, skipping existing files.
 - The project's integration writes only files on a scene's row (`voice.js`, `sounds.js`, `upload.js`); it needs the Update and Insert content capabilities. Other writes (text fields, plans, prompts, trials) go through the Notion MCP server above; without it, give Vineet the exact text and where it goes.
 - An assistant that builds a file for a scene outside this project writes it to `out/<stage>/scene-NN/` and gives Vineet the upload command.
 - Never copy a scene or shot into a local file to work from. If Notion and something local disagree, Notion wins.
