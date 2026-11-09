@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cinematic Image Review"
+  short_description: "Check cinematic images for defects and continuity"
+  default_prompt: "Use $cinematic-image-review to inspect this shot's current cinematic image against its screenplay and approved assets, then show the findings for my check."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Animatic Review"
+  short_description: "Check animatic staging, picture/sound sync and pacing"
+  default_prompt: "Use $animatic-review to review this scene's rendered animatic against its current panels and approved radio cut, then show timestamped findings and the next correction for my check."

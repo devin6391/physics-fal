@@ -40,6 +40,8 @@ Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same fold
 | 3. Radio cut | `node scripts/radio.js --scene <n>` | Builds the radio cut from the scene's Radio cut plan into `out/radio/scene-NN/` |
 | 5. Animatic | `node scripts/animatic.js --scene <n>` | Builds the animatic from the Animatic plan, the panels and the radio cut into `out/animatic/scene-NN/` |
 | any | `node scripts/upload.js --scene <n> <stage>` | Uploads a stage's new or changed files from `out/` to the scene's row |
+| 7. Frames | `node scripts/upload.js --shot <shot> <start-frame\|end-frame> <image>` | Uploads one frame image to the shot's own field; stops if a different frame is already attached |
+| any | `npm run upload -- --shot <shot> --field "<Files field>" <images…>` | Uploads images to any Files field; also accepts `--scene <n>` or `--page <URL-or-ID>` |
 | 7. Clips | `npm run pull -- <shots>`, then `node scripts/generate.js <shots>` | Downloads a shot's images, then generates its clip on fal |
 | 7. Chained shots | `node scripts/assemble.js --scene <n> --frame <shot>` | Saves the frame where a shot is cut, for the next shot's Start frame |
 | 8. Edit | `node scripts/assemble.js --scene <n>` | Assembles the scene from its shots' clips and stills, as its Edit plan says, on its mix, into `out/assembled/scene-NN/` |
@@ -47,9 +49,11 @@ Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same fold
 
 ## Reading and writing Notion
 
+- **Visual reviews:** use `.agents/skills/cinematic-image-review/SKILL.md` after creating/replacing cinematic reference images and `.agents/skills/pre-video-review/SKILL.md` before final video-prompt approval. For these reviews, only the approved screenplay and approved assets are creative authority; the storyboard is strong suggestive evidence. Inspect actual images, report concrete defects/uncertainty, then ask Vineet to check the same inputs. Timing/plans and saved prompts supply execution context, not independent creative canon.
+- **Scene-stage reviews:** use `.agents/skills/storyboard-review/SKILL.md` for panels before animatic work, `.agents/skills/radio-cut-review/SKILL.md` for rendered scene audio and cue timing, and `.agents/skills/animatic-review/SKILL.md` for the rendered picture-and-sound test before layout. These apply the existing Playbook; they do not authorize new rules, media approval or generation. Inspect current Notion sources and actual media, state any playback limitations, and leave final listening/viewing decisions to Vineet.
 - **Use the Notion SDK first** (`@notionhq/client` with `NOTION_TOKEN`; reuse `lib/notion.js`). `node scripts/generate.js <shot> --print` shows what Notion holds for a shot and what would be sent; `--dry-run` checks it.
 - When writing a Gemini frame prompt, keep its ordered input images in the shot page's **Gemini references** YAML block (format in `README.md`). `npm run refs -- <shot> --frame start|end` downloads those images to `out/refs/<shot>/`, skipping existing files.
-- The project's integration writes only files on a scene's row (`voice.js`, `sounds.js`, `upload.js`); it needs the Update and Insert content capabilities. Other writes (text fields, plans, prompts, trials) go through the Notion MCP server above; without it, give Vineet the exact text and where it goes.
+- The project's integration writes only files on scene and shot rows (`voice.js`, `sounds.js`, `upload.js`); it needs the Update and Insert content capabilities. `upload.js --field` accepts any existing Files field, with `--shot`, `--scene` or a checked `--page` target. Other writes (text fields, plans, prompts, trials) go through the Notion MCP server above; without it, give Vineet the exact text and where it goes.
 - An assistant that builds a file for a scene outside this project writes it to `out/<stage>/scene-NN/` and gives Vineet the upload command.
 - Never copy a scene or shot into a local file to work from. If Notion and something local disagree, Notion wins.
 

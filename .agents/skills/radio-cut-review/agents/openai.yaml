@@ -1,0 +1,4 @@
+interface:
+  display_name: "Radio Cut Review"
+  short_description: "Check radio-cut content, sound defects and timing"
+  default_prompt: "Use $radio-cut-review to inspect this scene's actual radio cut and cues against its screenplay and approved audio assets, stating what you could hear and what still needs my listening check."

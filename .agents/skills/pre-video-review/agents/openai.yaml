@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pre-Video Review"
+  short_description: "Review shot inputs and motion before video spending"
+  default_prompt: "Use $pre-video-review to inspect this shot's current images, references, prompt and settings against its screenplay and approved assets before I generate."

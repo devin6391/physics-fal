@@ -10,6 +10,49 @@ Notion is the source of truth. Every run reads the shot straight from its row in
 - `@aryan`, `@priya` … become fal's `@Element1`, `@Element2` … with that character's face close-up and sheet attached
 - a take is **never overwritten**, and every run is logged with its cost
 
+## Production review skills
+
+| Skill | Use it for |
+| --- | --- |
+| `$radio-cut-review` | Rendered audio: screenplay fidelity, voice/sound defects, overlap, perspective and measured cue timing |
+| `$storyboard-review` | Actual rough panels: required coverage, staging, sightlines, geography and meaningful visual defects |
+| `$animatic-review` | Rendered picture and sound: readability, timing, performance arc, transitions and stale/mismatched inputs |
+| `$cinematic-image-review` | Cinematic reference images, start/end frames and production stills |
+| `$pre-video-review` | The complete images, prompt and settings before final video-prompt approval |
+
+For example: `Use $radio-cut-review on scene 1's current radio cut`,
+`Use $storyboard-review on scene 1's current panels`, or
+`Use $animatic-review on scene 1's current rendered animatic`.
+The three scene-stage reviews follow the existing Playbook. Rough sketches and
+held animatic panels are judged for their story/staging job, not as finished
+cinematic footage. Audio overlaps do not require extra panels or shots.
+
+These are assistant review workflows, not standalone automatic slop classifiers.
+They read current Notion sources and inspect the actual media available. A cue
+list, waveform or successful decode does not substitute for listening; sampled
+frames do not establish full playback quality. Each review states its coverage,
+concrete findings and uncertainty, then asks Vineet to check the exact media.
+Final listening/viewing decisions remain his. New production rules require his
+review before they are saved in the Playbook.
+
+Use `$cinematic-image-review` after creating or replacing a cinematic reference,
+start/end frame or production still. Use `$pre-video-review` on the complete
+images/reference/prompt/settings set before final video-prompt approval or a
+changed retry. Their instructions live in `.agents/skills/`; Claude's skill paths
+link to the same files.
+
+These are visual reviews performed by an assistant. They check artefacts,
+identity, scale, construction, hand/prop states, continuity and feasible motion,
+and report observed evidence and uncertainty. Only the approved screenplay and
+approved assets are creative authority; storyboards are strong suggestive
+evidence. Plans and saved image prompts provide execution context.
+
+For example: `Use $cinematic-image-review on CO-01's current end frame`, then
+`Use $pre-video-review on CO-01's current generation request`. Each review ends
+with findings and a request for Vineet to check the same actual images. An AI
+review does not approve an asset or a paid generation. Reviews are kept on the
+existing Notion shot/scene page, not as local copies of scene/shot text.
+
 ## Setup (once)
 
 Needs Node.js 20 or newer.
@@ -284,7 +327,7 @@ Each shot is held from its **at** until the next. Its picture is its **Final sho
 
 `--frame CO-07` saves the frame where CO-07 is cut in this edit, for the next shot to start from (attach it to that shot's Start frame).
 
-## Uploading a scene's files to Notion
+## Uploading files to Notion
 
 `scripts/upload.js` puts a stage's files into the right field on the scene's row in the Scenes database, so nothing is dragged in by hand.
 
@@ -303,6 +346,41 @@ The stages and their folders: `radio-cut` (out/radio), `storyboard` (out/storybo
 - A file that is in Notion but was put there another way (by hand) is skipped unless `--force`.
 - Nothing already in the field is removed, and the field stays sorted by file name (S01-sb-2 before S01-sb-10, 13a before 13b).
 - JSON files are never uploaded. Files over 20 MB go up in parts. A free Notion workspace takes files up to 5 MB.
+
+For a shot's start or end frame, name the shot and one image file:
+
+```bash
+node scripts/upload.js --shot CO-01 end-frame out/frames/scene-01/CO-01-end-frame.jpg --dry-run
+node scripts/upload.js --shot CO-01 end-frame out/frames/scene-01/CO-01-end-frame.jpg
+```
+
+Use `start-frame` for the shot's Start frame field. This uses the Notion SDK,
+keeps the image in `out/frames/scene-NN/`, and leaves shot statuses unchanged.
+An identical upload is skipped. A populated frame field stops the command rather
+than replacing an existing image or adding an ambiguous second frame. `--force`
+applies only to scene uploads. Choosing a replacement is a separate review.
+
+For any image Files field on a shot or scene row, use its exact Notion field name:
+
+```bash
+npm run upload -- --shot CO-01 --field "End frame" out/frames/scene-01/CO-01-end-frame.jpg
+npm run upload -- --scene 1 --field "Master still" out/frames/scene-01/master.jpg
+npm run upload -- --page "https://app.notion.com/p/CO-01-411252f6b4ff81019444d1c7b2ca76dc" --field "End frame" out/frames/scene-01/CO-01-end-frame.jpg --dry-run
+```
+
+Choose exactly one target: `--shot`, `--scene`, or `--page` (a Notion URL or page
+ID). Direct page targets are checked against the project's configured Shots and
+Scenes databases. `--field` accepts any existing Files property without adding it
+to `config.yaml`; text and other property types are rejected. Name one or more
+PNG, JPG, JPEG or WebP files. Add `--dry-run` to preview without uploading.
+
+Custom image uploads append new filenames and preserve existing attachments.
+Identical files previously uploaded by this script are skipped; a conflicting
+filename stops the run, including a matching name with another extension.
+Use a distinct filename to keep another image. Shot Start frame and End frame
+fields still take one image and retain the single-frame safeguard above.
+`--force` is unavailable with `--field`. The script uploads the files from their
+given paths; save production images in `out/` before uploading.
 
 ## What a shot needs in Notion
 
@@ -345,7 +423,7 @@ Use **Kling 3.0** whenever a character's face has to match their sheet, above al
 | `scripts/radio.js` | Builds a scene's radio cut, or with `--mix` its mix, from the plan on its row page |
 | `scripts/animatic.js` | Builds a scene's animatic from its storyboard panels and radio cut |
 | `scripts/assemble.js` | Assembles a scene from its shots' clips and stills, on its mix |
-| `scripts/upload.js` | Uploads a stage's files to the scene's row in Notion |
+| `scripts/upload.js` | Uploads scene assets or a shot's start/end frame to Notion |
 | `lib/video.js` | The picture side of the animatic and the assembled scene (ffmpeg) |
 | `lib/voice.js` | Reads a scene's Sound script: the voice requests and the SOUNDS list |
 | `lib/audio.js` | Finds the pauses and cuts a request into line files (ffmpeg) |
