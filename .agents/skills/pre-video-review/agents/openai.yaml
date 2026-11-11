@@ -1,4 +1,4 @@
 interface:
   display_name: "Pre-Video Review"
-  short_description: "Review shot inputs and motion before video spending"
-  default_prompt: "Use $pre-video-review to inspect this shot's current images, references, prompt and settings against its screenplay and approved assets before I generate."
+  short_description: "Check cinematic purpose, acting, camera and inputs"
+  default_prompt: "Use $pre-video-review to check this prompt and its actual references against the source coverage, cinematic contribution, performance and cinematography before I approve generation."

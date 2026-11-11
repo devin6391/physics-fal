@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generated Video Review"
+  short_description: "Review actual takes for acting, cinematography and slop"
+  default_prompt: "Use $generated-video-review to inspect this actual take against its cinematic purpose, approved sources and scene audio, then give timestamped findings for my viewing decision."

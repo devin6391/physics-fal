@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video Prompt Creation"
+  short_description: "Approve weighted creative choices before prompt writing"
+  default_prompt: "Use $video-prompt-creation to prepare this shot’s weighted creative decision matrix, explain your recommendations, and ask for my choices and weights before drafting the video prompt."

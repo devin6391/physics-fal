@@ -18,7 +18,9 @@ Notion is the source of truth. Every run reads the shot straight from its row in
 | `$storyboard-review` | Actual rough panels: required coverage, staging, sightlines, geography and meaningful visual defects |
 | `$animatic-review` | Rendered picture and sound: readability, timing, performance arc, transitions and stale/mismatched inputs |
 | `$cinematic-image-review` | Cinematic reference images, start/end frames and production stills |
-| `$pre-video-review` | The complete images, prompt and settings before final video-prompt approval |
+| `$video-prompt-creation` | Propose a weighted creative decision matrix; obtain Vineet's choices before drafting a video prompt |
+| `$pre-video-review` | Before generation: source coverage, cinematic contribution, performance, cinematography, actual inputs and full prompt/settings |
+| `$generated-video-review` | After generation: the actual take's acting, camera/light/focus, temporal continuity, AI artefacts and fit with scene audio |
 
 For example: `Use $radio-cut-review on scene 1's current radio cut`,
 `Use $storyboard-review on scene 1's current panels`, or
@@ -34,6 +36,29 @@ frames do not establish full playback quality. Each review states its coverage,
 concrete findings and uncertainty, then asks Vineet to check the exact media.
 Final listening/viewing decisions remain his. New production rules require his
 review before they are saved in the Playbook.
+
+The two video reviewers share the conversion/source checklist at
+`.agents/skills/pre-video-review/references/cinematic-review.md`. They establish
+what the assets, storyboard, radio cut, animatic and cinematic frames already
+supply, then check the necessary performed moment: intent, emotion/composure,
+readable face/body expression, camera movement, focus, lighting and continuity.
+Each relevant source is recorded as checked, reused unchanged, partial,
+unavailable or not applicable with a reason. Existing approvals can be reused;
+review does not mean redoing every upstream stage.
+
+For example: `Use $pre-video-review on CO-01's proposed generation request`
+requires no generated video. `Use $generated-video-review on this CO-01 take`
+requires the actual candidate file. The latter reports timestamped findings and
+a keep/repair/correction recommendation for Vineet's viewing decision.
+
+Use `Use $video-prompt-creation on CO-01; show the creative matrix first` to
+prepare a new prompt. The matrix shows inherited information, remaining creative
+choices, assistant recommendations/reasons, proposed importance weights and
+Vineet's decisions. Weights normally use 1–5 and are editable; they are not model
+parameters, quality scores or permission to omit story requirements. New creative
+choices and weights stay pending until confirmed. After confirmation, the skill
+drafts the eight fields/full prompt and hands them to `pre-video-review`; the
+exact prompt, inputs/settings and paid request still need their own approvals.
 
 Use `$cinematic-image-review` after creating or replacing a cinematic reference,
 start/end frame or production still. Use `$pre-video-review` on the complete
@@ -296,6 +321,8 @@ Everything in the radio cut plan works here. **include** names another plan on t
 
 `scripts/assemble.js` puts the scene's shots on its sound, as the edit plan says. Each clip's own sound is dropped; the sound is the scene's mix (or its radio cut, before the mix exists).
 
+Saved locally: [Scene 1 partial cut through CO-04](out/assembled/scene-01/S01-CO01-to-CO04-partial-cut-20261110.mp4), 14 seconds with the scene radio cut. This checkpoint preserves the continuous-entry CO-01 repair; its original timestamped review and source takes are retained. Media under `out/` stays local and is not tracked by Git. The current rebuild plan remains on the [scene's Notion page](https://app.notion.com/p/3fb252f6b4ff8104aff1e148d25704e4); run `node scripts/assemble.js --scene 1 --review` to build from that current plan without overwriting this checkpoint.
+
 ```
 node scripts/assemble.js --scene 1 --print         # every cut and the picture it will use
 node scripts/assemble.js --scene 1                 # out/assembled/scene-01/S01-assembled.mp4
@@ -326,6 +353,10 @@ shots:
 Each shot is held from its **at** until the next. Its picture is its **Final shot** if it has one, else its **Generated clip**, played from **from** seconds in (default `clip_handles`, 1 s, past the start of the generated handle; 0 for a Final shot), else its **Start frame** held as a still. **still: true** holds the start frame even when a clip exists (a clip that won't behave). **zoom**, **focus** and **dissolve** work as in the animatic. A clip shorter than its cut holds its last frame, with a warning. The times come from the exposure sheet's Time column and the shots' Timing tables, so the edit stays on the radio cut.
 
 `--frame CO-07` saves the frame where CO-07 is cut in this edit, for the next shot to start from (attach it to that shot's Start frame).
+
+For an incremental review cut, set `review: true` and a numeric `end` in the Notion Edit plan, then run `node scripts/assemble.js --scene 1 --review --print` before building with `--review`. An unselected take can be named on its cut as `candidate: out/cold_open/CO-04-higgsfield-eb38a1b0.mp4`, with an explicit `from`. Candidates must be existing videos under `out/` and require `--review`; they do not fill the shot's selected media fields or approve it. Review outputs use unique `S01-review-<timestamp>.mp4` names, leaving the assembled production file alone. `audio: radio` keeps the radio cut continuous, including its existing overlaps; all source-clip audio is discarded.
+
+Use `--heading "CO-01 repair plan"` to read a separate named plan from the scene page when testing a repair without replacing its main Edit plan.
 
 ## Uploading files to Notion
 
