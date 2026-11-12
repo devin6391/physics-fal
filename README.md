@@ -371,11 +371,41 @@ shots:
 
 Each shot is held from its **at** until the next. Its picture is its **Final shot** if it has one, else its **Generated clip**, played from **from** seconds in (default `clip_handles`, 1 s, past the start of the generated handle; 0 for a Final shot), else its **Start frame** held as a still. **still: true** holds the start frame even when a clip exists (a clip that won't behave). **zoom**, **focus** and **dissolve** work as in the animatic. A clip shorter than its cut holds its last frame, with a warning. The times come from the exposure sheet's Time column and the shots' Timing tables, so the edit stays on the radio cut.
 
-`--frame CO-07` saves the frame where CO-07 is cut in this edit, for the next shot to start from (attach it to that shot's Start frame).
+Vineet can run `--frame CO-07` to export CO-07’s actual cut frame and supply it for the next shot’s Start frame. The assistant can identify the cut time, review the supplied image, and attach the exact file.
 
 For an incremental review cut, set `review: true` and a numeric `end` in the Notion Edit plan, then run `node scripts/assemble.js --scene 1 --review --print` before building with `--review`. An unselected take can be named on its cut as `candidate: out/cold_open/CO-04-higgsfield-eb38a1b0.mp4`, with an explicit `from`. Candidates must be existing videos under `out/` and require `--review`; they do not fill the shot's selected media fields or approve it. Review outputs use unique `S01-review-<timestamp>.mp4` names, leaving the assembled production file alone. `audio: radio` keeps the radio cut continuous, including its existing overlaps; all source-clip audio is discarded.
 
 Use `--heading "CO-01 repair plan"` to read a separate named plan from the scene page when testing a repair without replacing its main Edit plan.
+
+## Local face repair
+
+At each assembled-scene review, compare every readable face with its approved Asset Library **Face close-up**. When Vineet or the reviewer flags identity drift, test the affected interval of the shot with `npm run face-repair`. The Node.js command projects detail from the supplied close-up onto the tracked face. A small native helper uses Apple Vision to locate facial landmarks. It runs locally without API calls or generation credits.
+
+Use the project’s Node.js setup on macOS with Apple Command Line Tools and FFmpeg.
+
+```sh
+npm run face-repair -- --shot CO-08 \
+  --clip out/cold_open/CO-08-foreground-match-review.mp4 \
+  --reference "$HOME/Downloads/aryan-face-closeup.jpg" \
+  --from 20.5 --to 22.3 --protect-side left
+```
+
+Use clip time in seconds for `--from` and `--to`. Select a continuous interval with one intended subject. `--region x,y,width,height` limits face selection in a multi-person shot. Coordinates are in source pixels from the top left. `--protect-side left` or `right` reduces the blend near a phone or hand on that side of the screen. Input clips must be upright, progressive 8-bit SDR yuv420p at a constant frame rate.
+
+Each successful run writes a full-length `review.mp4` and a silent `comparison.mp4` of the selected interval under `out/face-repair/<shot>/review-*/`. The original is on the left in the comparison. The script skips ambiguous or untracked faces and checks the review clip’s frame count, frame rate and audio. Judge identity, eye line, expression, edge stability and occlusion at normal speed. Strong profile, occlusion and motion blur can limit the repair. Use the repaired clip in a scene after Vineet selects it.
+
+## Local lip-sync timing repair
+
+Use this when a take already shows the correct words and their visible timing differs from the radio cut. Start with the exact standalone shot preview that contains the intended scene audio. Identify the first and last visible syllables for each affected line and pair them with the same moments in the radio cut. Use clip seconds for both times. Add a pair at a clear pause or word boundary when it helps. Equal times can pin a reaction or return the shot to its original pace.
+
+```sh
+npm run lip-sync -- --shot SHOT --clip out/path/to/shot-radio-review.mp4 \
+  --anchor 3.00:5.63 --anchor 4.65:6.84 --anchor 8:8 --dry-run
+```
+
+Each anchor is `audio:picture`. `3.00:5.63` moves the picture at 5.63 seconds to the radio cue at 3.00 seconds. Keep both columns increasing. After checking the map, omit `--dry-run` to render. FFmpeg eases the picture timing between anchors and interpolates motion. The command preserves the exact audio and checks the output frame count, frame rate and dimensions. It writes a full shot `review.mp4` and a `comparison.mp4` with shared radio audio under `out/lip-sync/<shot>/review-*/`. The original is on the left.
+
+Review the syllables and the motion at normal speed before using the result. The retime also affects gestures inside the repaired interval. Use an audio-driven mouth repair when the take shows different words or the mouth shapes do not match.
 
 ## Uploading files to Notion
 

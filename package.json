@@ -19,7 +19,9 @@
     "radio": "node scripts/radio.js",
     "animatic": "node scripts/animatic.js",
     "mix": "node scripts/radio.js --mix",
-    "assemble": "node scripts/assemble.js"
+    "assemble": "node scripts/assemble.js",
+    "face-repair": "node scripts/face-repair.js",
+    "lip-sync": "node scripts/lip-sync.js"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "2.76.0",

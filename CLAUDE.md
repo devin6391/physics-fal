@@ -1,5 +1,5 @@
 # CLAUDE.md
 
-All instructions for this project are in AGENTS.md, which every AI assistant working here reads (Codex, Claude Code, Antigravity or another), so there is one set of rules:
+Read AGENTS.md before working on Physics. Its shared instructions include Vineet’s ownership of start-frame capture and the workflow for assistant-assisted video repair.
 
 @AGENTS.md

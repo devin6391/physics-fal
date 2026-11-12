@@ -17,7 +17,9 @@ Notion is the source of truth. Every command reads the scene or shot it works on
 - **Asset Library:** the locked character sheets and face close-ups, and the motifs. https://app.notion.com/p/6a739b18341e46e59663a3485c530700
 - **Decisions and changes log:** what was decided and why, and what changed. The other pages say only what is true now; history and reasons go here. https://app.notion.com/p/411252f6b4ff815e81cffded396d2c9e
 
-Start and end frames, storyboard panels and stills are made by Vineet in Gemini, from prompts the assistant writes and he approves. A reused frame (CO-02 starting on CO-01's image) is uploaded to the reusing shot's own Start frame field too.
+Vineet captures and supplies every production Start frame, including when it is the preceding shot’s actual cut frame. Assistants never capture, extract, or export an image for use as a Start frame. They can identify the source clip and cut time, write image prompts, review Vineet’s supplied image, and attach that exact file to the shot’s Start frame field. Vineet makes end frames, storyboard panels and stills in Gemini from prompts he approves.
+
+Assistants can help repair existing video in chat and use available tools on Vineet’s Mac to render local review copies. Keep the original take and let Vineet select any repaired copy for production.
 
 ## Setting up an assistant
 
@@ -43,14 +45,16 @@ Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same fold
 | 7. Frames | `node scripts/upload.js --shot <shot> <start-frame\|end-frame> <image>` | Uploads one frame image to the shot's own field; stops if a different frame is already attached |
 | any | `npm run upload -- --shot <shot> --field "<Files field>" <images…>` | Uploads images to any Files field; also accepts `--scene <n>` or `--page <URL-or-ID>` |
 | 7. Clips | `npm run pull -- <shots>`, then `node scripts/generate.js <shots>` | Downloads a shot's images, then generates its clip on fal |
-| 7. Chained shots | `node scripts/assemble.js --scene <n> --frame <shot>` | Saves the frame where a shot is cut, for the next shot's Start frame |
+| 7. Chained shots (Vineet) | `node scripts/assemble.js --scene <n> --frame <shot>` | Vineet can export the actual cut frame and supply it for the next shot's Start frame |
 | 8. Edit | `node scripts/assemble.js --scene <n>` | Assembles the scene from its shots' clips and stills, as its Edit plan says, on its mix, into `out/assembled/scene-NN/` |
 | 8. Mix | `node scripts/radio.js --scene <n> --mix` | Builds the scene's mix from its Mix plan into `out/mix/scene-NN/` |
+| 7–8. Face repair | `npm run face-repair -- --shot SHOT --clip VIDEO --reference IMAGE --from SECONDS --to SECONDS` | Uses the approved Face close-up to repair a flagged shot interval locally on Mac and makes review copies |
 
 ## Reading and writing Notion
 
 - **Visual reviews:** use `.agents/skills/cinematic-image-review/SKILL.md` after creating/replacing cinematic reference images and `.agents/skills/pre-video-review/SKILL.md` before final video-prompt approval. For these reviews, only the approved screenplay and approved assets are creative authority; the storyboard is strong suggestive evidence. Inspect actual images, report concrete defects/uncertainty, then ask Vineet to check the same inputs. Timing/plans and saved prompts supply execution context, not independent creative canon.
 - **Video reviews:** `pre-video-review` checks a proposed prompt/request without needing generated footage; `.agents/skills/generated-video-review/SKILL.md` checks an actual take. Both use the cinematic-conversion brief and source-coverage ledger linked from their skills: inherited information, required acting/emotional development, cinematography and physical/timing continuity. State which actual sources/media were checked and which remain unverified. A wording check is not a complete cinematic review.
+- **Face continuity:** after each scene is assembled, use the generated video review to check every readable face against its approved Asset Library Face close-up, including turns, approaches and shot joins. If Vineet or the reviewer finds visible identity drift during shot or scene review, use the local face repair command on the affected shot interval. Show the comparison and get Vineet’s decision before using the repair in an edit.
 - **Video prompt creation:** use `.agents/skills/video-prompt-creation/SKILL.md` to propose a source-grounded creative decision matrix with recommendations, reasons and editable importance weights. Vineet verifies creative choices and priorities before prompt drafting. Keep the matrix on the existing shot page; then use `pre-video-review` on the exact prompt/request. Matrix approval does not authorize generation or spending.
 - **Scene-stage reviews:** use `.agents/skills/storyboard-review/SKILL.md` for panels before animatic work, `.agents/skills/radio-cut-review/SKILL.md` for rendered scene audio and cue timing, and `.agents/skills/animatic-review/SKILL.md` for the rendered picture-and-sound test before layout. These apply the existing Playbook; they do not authorize new rules, media approval or generation. Inspect current Notion sources and actual media, state any playback limitations, and leave final listening/viewing decisions to Vineet.
 - **Use the Notion SDK first** (`@notionhq/client` with `NOTION_TOKEN`; reuse `lib/notion.js`). `node scripts/generate.js <shot> --print` shows what Notion holds for a shot and what would be sent; `--dry-run` checks it.
