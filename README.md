@@ -1,13 +1,13 @@
 # physics-fal
 
-Makes the files for the short film **Physics**: each scene's voices and sounds (ElevenLabs), its radio cut, animatic, mix and assembled cut (ffmpeg), and the moving clips made on [fal.ai](https://fal.ai) (Kling 3.0 and Kling 4.0, one shot or section at a time). The editing is done here, by commands, not in an editing app.
+Makes the files for the short film **Physics**: each scene's voices and sounds (ElevenLabs), its radio cut, animatic, mix and assembled cut (ffmpeg), and the moving clips made on [Runway Dev](https://dev.runway.com) (Kling 4.0) or [fal.ai](https://fal.ai) (Kling 3.0), one shot or section at a time. The editing is done here, by commands, not in an editing app.
 
 Notion is the source of truth. Every run reads the shot straight from its row in the **Shots** database (the eight prompt fields, duration, start and end frames, and its characters) and the locked character images from the **Asset Library**. There are no local copies of prompts or images to keep in sync: change something in Notion and the next run uses it. The project applies the film's rules the same way every time:
 
 - the standard **KEEP STILL** block is appended to every prompt
 - the **negative prompt** is sent with every clip
 - Kling's own **sound is never used**: off on Kling 3.0, and removed in the edit for Kling 4.0, which always makes it
-- `@aryan`, `@priya` … become fal's `@Element1`, `@Element2` … with that character's face close-up and sheet attached
+- `@aryan`, `@priya` … bind a character's face close-up and sheet as Runway references or fal Elements
 - a take is **never overwritten**, and every run is logged with its cost
 
 ## Production review skills
@@ -19,6 +19,7 @@ Notion is the source of truth. Every run reads the shot straight from its row in
 | `$animatic-review` | Rendered picture and sound: readability, timing, performance arc, transitions and stale/mismatched inputs |
 | `$cinematic-image-review` | Cinematic reference images, start/end frames and production stills |
 | `$video-prompt-creation` | Propose a weighted creative decision matrix; obtain Vineet's choices before drafting a video prompt |
+| `$video-generation` | Ask Vineet to choose manual Higgsfield or Runway, then handle the live Runway approval for the exact request |
 | `$pre-video-review` | Before generation: source coverage, cinematic contribution, performance, cinematography, actual inputs and full prompt/settings |
 | `$generated-video-review` | After generation: the actual take's acting, camera/light/focus, temporal continuity, AI artefacts and fit with scene audio |
 
@@ -29,8 +30,7 @@ The three scene-stage reviews follow the existing Playbook. Rough sketches and
 held animatic panels are judged for their story/staging job, not as finished
 cinematic footage. Audio overlaps do not require extra panels or shots.
 
-These are assistant review workflows, not standalone automatic slop classifiers.
-They read current Notion sources and inspect the actual media available. A cue
+The review skills read current Notion sources and inspect the actual media available. A cue
 list, waveform or successful decode does not substitute for listening; sampled
 frames do not establish full playback quality. Each review states its coverage,
 concrete findings and uncertainty, then asks Vineet to check the exact media.
@@ -87,11 +87,22 @@ npm install
 cp .env.example .env      # then fill in the keys
 ```
 
-- `FAL_KEY`: from fal.ai → **API Keys**.
+- `RUNWAYML_API_SECRET`: from Runway Dev → **API Keys**, for Kling 4.0.
+- `FAL_KEY`: from fal.ai → **API Keys**, for Kling 3.0 or an explicit fal run.
 - `NOTION_TOKEN`: see Notion setup below.
 - `ELEVENLABS_API_KEY`: from ElevenLabs → **API Keys**, for the voices.
 
 `.env` is git-ignored; never commit the keys, paste them into chat, or put them in Notion.
+
+### Runway Dev setup
+
+Create a project and API key in [Runway Dev](https://dev.runway.com), then add `RUNWAYML_API_SECRET=<your key>` to the existing `.env`. Check the key and the project's API credit balance with:
+
+```bash
+npm run generate -- --runway-check
+```
+
+This reads the balance without generating. Add API credits in the developer portal when you are ready to run an approved shot. The generator estimates the published 1080p still-input rate and returns to list price when Runway's discount ends. [Runway API pricing](https://docs.dev.runwayml.com/guides/pricing/)
 
 ### Notion setup
 
@@ -178,18 +189,22 @@ node scripts/generate.js CO-02a --print
 # 3. Check the shot and its local images, and see the cost (spends nothing)
 node scripts/generate.js CO-02a --dry-run
 
-# 4. Generate (asks "Spend about $X?" before starting)
-node scripts/generate.js CO-02a
+# 4. For a Kling 4.0 shot, review the Runway request in a terminal and answer y/n
+node scripts/generate.js CO-02a --provider runway
 ```
 
-Name several shots (`CO-02a CO-02b`), or use `--section "Cold open"` for every shot in a section whose Model is one of the fal models in `config.yaml` (shots set to another Model, like Free still, are listed and skipped; for generating, only those whose prompt is written; shots with all eight prompt fields empty are listed and skipped). Both scripts take the same shot arguments. Up to 4 clips run in parallel. Add `--takes 2` for two takes of each shot, and `--yes` to skip the question. `npm run check` is the dry run for the cold open.
+When you ask an assistant to generate a shot, it uses `$video-generation` and asks whether you want to run it manually in Higgsfield or use the Runway Dev API, unless you already specified the route.
 
-**The generator never downloads from Notion.** It uploads the images to fal from this Mac. If an image isn't here (never pulled, or replaced in Notion since), it stops before the cost question and prints the `npm run pull` command to run. If the pull then reports a problem, the image is missing or unusable in Notion itself: fix it there and pull again.
+For Runway, the live command prints the HTTP method, endpoint, API version, JSON body, full prompt, media roles and file checksums, duration, take count and estimated cost before asking for `y/n`. It resolves the displayed media slots to temporary upload URIs after approval. Entering `n`, leaving the answer blank or closing the session cancels the request. You can answer in your terminal or have the assistant show you the preview and relay your decision to that same terminal session. Runway rejects `--yes` and piped input.
+
+Name several shots (`CO-02a CO-02b`), or use `--section "Cold open"`. The generator lists and skips unsupported models and unwritten prompts in section runs. Notion's Model routes Kling 4.0 to Runway Dev and Kling 3.0 to fal. Add `--provider fal` to explicitly use the prior fal route for Kling 4.0. Up to four clips run in parallel. Add `--takes 2` for two takes per shot. `--yes` is available for exact, preapproved fal runs. `npm run check` is the dry run for the cold open.
+
+The generator uploads the images to the selected provider from this Mac after approval. If an image is missing locally, it prints the `npm run pull` command before the cost question. If the pull reports a problem, check the attachment in Notion.
 
 Results:
 
 - `out/<section>/<shot>-take<N>.mp4`: the clip
-- `out/<section>/<shot>-take<N>.json`: exactly what was sent (prompt, Notion page and its last edit, image names, settings, request ID, cost)
+- `out/<section>/<shot>-take<N>.json`: prompt, Notion page and its last edit, image names, provider, request ID, estimated cost and take status
 - `log.csv`: one line per run, including failures
 
 `out/` is git-ignored because video is too heavy for git. Approved clips go into Notion (the shot's **Generated clip** field).
@@ -467,7 +482,7 @@ given paths; save production images in `out/` before uploading.
 The checker stops before anything is spent unless the shot's row has:
 
 - **Model** set to Kling 3.0 or Kling 4.0 (see below)
-- **Duration (s)**: the shot's length in the scene, cut from the radio cut (it can have decimals). The clip is generated `clip_handles` seconds (config.yaml, 1) longer at each end and rounded up to whole seconds, at most 15; the edit uses the middle. `--print` shows both lengths.
+- **Duration (s)**: the shot's length in the scene, cut from the radio cut. The generated length includes `clip_handles` seconds (currently 1) at each end and rounds up to whole seconds. The cap is 30 on Runway Dev and 15 on fal, handles included. `--print` shows both lengths.
 - **Start frame** (and optionally **End frame**): a png, jpg or webp image. A reused frame is uploaded to this shot's own field too, so the row says exactly what is sent.
 - all eight **Prompt:** fields filled in (Characters, Setting and look, Camera, Action, Dialogue, Timing, Environment, Keep still). Keep still holds the shot's own lines only; the standard block is added automatically.
 - every `@name` in the prompt linked in the shot's **Elements**, as an Asset Library row whose Class is Character and which has a **Face close-up** and a **Reference Image**
@@ -476,20 +491,20 @@ Characters are written lowercase with underscores: the Asset Library row "Auto d
 
 ### Kling 3.0 or Kling 4.0
 
-The shot's **Model** in Notion picks the fal model; `config.yaml → models` holds each one's endpoint and price.
+The shot's **Model** in Notion picks the route. `config.yaml → models` holds the fal settings and `lib/runway.js` holds the Runway request settings.
 
-| | Kling 3.0 (Pro) | Kling 4.0 |
+| | Kling 3.0 Pro on fal | Kling 4.0 on Runway Dev |
 | --- | --- | --- |
-| Price on fal | $0.112 per second (audio off) | $0.157 per second |
-| Characters (`@aryan` with face close-up and sheet) | ✓ | ✗: fal's Kling 4.0 takes no character images |
-| Negative prompt | ✓ | ✗ |
-| Audio setting | off | none on fal |
-| Start and end frame | ✓ | ✓ |
-| Resolution | — | 1080p (`config.yaml`) |
+| Generated length including handles | 3–15 s | 3–30 s |
+| Character images for a linked `@aryan` | fal Element | Face close-up and sheet as separate references |
+| Negative prompt | Configured negative prompt | Continuity directions in the main prompt |
+| Audio | Off | Native audio, removed in the edit |
+| Frames | Start and optional end | Start and optional end |
+| Resolution | Pro | 1080p |
 
-Use **Kling 3.0** whenever a character's face has to match their sheet, above all when someone walks in from off-frame. **Kling 4.0** suits shots where everyone on screen is already in the start frame: write the people in words, without `@names`. The checker stops a Kling 4.0 shot whose prompt names a character. Clips stay 3 to 15 seconds on both (fal's Kling 4.0 allows up to 30).
+On Runway, `--print` shows the final grouped prompt and named reference files. The **DIALOGUE AND TIMING** section uses the shot's existing action, dialogue and timing text. Write exact visible lines next to their timed beats in Notion. The script appends the standard KEEP STILL block once. Runway accepts up to 10 images total across frames and references.
 
-**Places have no element.** On fal the room, the pond or the road comes from the start frame, so write "The hostel room at night …" rather than `@hostel_room`. Linking a place in Elements is fine; only characters are sent.
+Use `@names` only for the characters whose assets should be sent. Places are established by the shot's frame and prompt. The explicit fal Kling 4.0 route takes frames only and its checker rejects character tags.
 
 ## The files
 
@@ -498,6 +513,7 @@ Use **Kling 3.0** whenever a character's face has to match their sheet, above al
 | `config.yaml` | The fal models (endpoint, price) for each Notion Model, Kling 3.0's audio off, the clip handles, parallel runs, the negative prompt, the standard KEEP STILL block, and the Notion field names the project reads |
 | `scripts/pull.js` | Downloads shots' images from Notion into `.cache/notion/` |
 | `scripts/generate.js` | The generator |
+| `lib/runway.js` | Runway Dev request, ephemeral uploads, polling and price estimate |
 | `scripts/voice.js` | Makes a scene's dialogue on ElevenLabs, cuts it into line files and uploads them to Notion |
 | `scripts/sounds.js` | Makes a scene's other sounds on ElevenLabs Sound Effects and uploads them to Notion |
 | `scripts/radio.js` | Builds a scene's radio cut, or with `--mix` its mix, from the plan on its row page |
@@ -515,3 +531,5 @@ Use **Kling 3.0** whenever a character's face has to match their sheet, above al
 `npm run pull` downloads a shot's images from Notion into `.cache/notion/`, each named by its Notion file id. Replacing a file in Notion gives it a new id, so the generator asks for a fresh pull instead of sending the old image.
 
 fal reads images from URLs, so the generator uploads each local image to fal's own storage the first time it's used and kept there for 30 days. The URL is remembered in `.cache/uploads.json`, keyed by the file's content: an unchanged image is never uploaded twice. `.cache/` is git-ignored and safe to delete.
+
+Runway uses ephemeral uploads valid for 24 hours. Shared images upload once per command. The generator records the task ID after submission so you can check its status in Runway Dev if a download or polling call fails.

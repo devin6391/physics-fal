@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// Downloads the images shots need from Notion into .cache/notion/, so generate.js can upload them to fal.
+// Downloads the images shots need from Notion into .cache/notion/, for generate.js.
 //
 //   node scripts/pull.js CO-02a                     one shot's images (several: CO-02a CO-02b or CO-02a,CO-02b)
-//   node scripts/pull.js --section "Cold open"      every shot in a section made on fal (Model in config.yaml)
+//   node scripts/pull.js --section "Cold open"      every shot in a section with a supported Model
 //
 // For each shot: its start frame, end frame (if any), and each linked character's face close-up and sheet.
 // Images already here are skipped. A problem reported here means the image isn't usable in Notion.
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { loadConfig } from "../lib/project.js";
-import { makeNotion, download, imagesOf, onFal } from "../lib/notion.js";
+import { makeNotion, download, imagesOf, generatableShots } from "../lib/notion.js";
 
 const { values: opts, positionals } = parseArgs({
   allowPositionals: true,
@@ -29,7 +29,7 @@ const fields = config.notion.fields;
 let shots;
 try {
   const notion = makeNotion(config);
-  shots = opts.section ? onFal(await notion.shotsInSection(opts.section), config) : await notion.shotsByIds(ids);
+  shots = opts.section ? generatableShots(await notion.shotsInSection(opts.section), config) : await notion.shotsByIds(ids);
 } catch (err) {
   const hint = err?.code === "object_not_found" || err?.code === "unauthorized"
     ? " (check NOTION_TOKEN, and that the Shots and Asset Library databases are shared with the integration: ••• → Connections)"

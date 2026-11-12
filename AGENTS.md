@@ -2,7 +2,7 @@
 
 Instructions for any AI assistant working in this project (Codex, Claude Code, Antigravity or another). `CLAUDE.md` and `GEMINI.md` only point here, so every assistant reads the same rules. Nothing in the project depends on one assistant: what any of them can do depends only on whether it has Notion connected and a shell here.
 
-This project makes the files for **Physics**, a Hindi/Hinglish AI horror short film made by Vineet: each scene's voices and sounds (ElevenLabs), its radio cut, animatic, mix and assembled cut, and the moving clips made on fal.ai (Kling 3.0 or Kling 4.0; the shot's Model in Notion decides). The editing and mixing are done by these commands, never in an editing app, so any assistant can redo them. Read `README.md` for how each command works.
+This project makes the files for **Physics**, a Hindi/Hinglish AI horror short film made by Vineet: each scene's voices and sounds (ElevenLabs), its radio cut, animatic, mix and assembled cut, and the moving clips made with Kling 4.0 on Runway Dev or Kling 3.0 on fal. The shot's Model in Notion decides. The editing and mixing are done by these commands, never in an editing app, so any assistant can redo them. Read `README.md` for how each command works.
 
 ## Where things live
 
@@ -44,7 +44,7 @@ Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same fold
 | any | `node scripts/upload.js --scene <n> <stage>` | Uploads a stage's new or changed files from `out/` to the scene's row |
 | 7. Frames | `node scripts/upload.js --shot <shot> <start-frame\|end-frame> <image>` | Uploads one frame image to the shot's own field; stops if a different frame is already attached |
 | any | `npm run upload -- --shot <shot> --field "<Files field>" <images…>` | Uploads images to any Files field; also accepts `--scene <n>` or `--page <URL-or-ID>` |
-| 7. Clips | `npm run pull -- <shots>`, then `node scripts/generate.js <shots>` | Downloads a shot's images, then generates its clip on fal |
+| 7. Clips | `npm run pull -- <shots>`, then `node scripts/generate.js <shots>` | Downloads a shot's images, then generates its clip on the selected route |
 | 7. Chained shots (Vineet) | `node scripts/assemble.js --scene <n> --frame <shot>` | Vineet can export the actual cut frame and supply it for the next shot's Start frame |
 | 8. Edit | `node scripts/assemble.js --scene <n>` | Assembles the scene from its shots' clips and stills, as its Edit plan says, on its mix, into `out/assembled/scene-NN/` |
 | 8. Mix | `node scripts/radio.js --scene <n> --mix` | Builds the scene's mix from its Mix plan into `out/mix/scene-NN/` |
@@ -56,6 +56,7 @@ Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same fold
 - **Video reviews:** `pre-video-review` checks a proposed prompt/request without needing generated footage; `.agents/skills/generated-video-review/SKILL.md` checks an actual take. Both use the cinematic-conversion brief and source-coverage ledger linked from their skills: inherited information, required acting/emotional development, cinematography and physical/timing continuity. State which actual sources/media were checked and which remain unverified. A wording check is not a complete cinematic review.
 - **Face continuity:** after each scene is assembled, use the generated video review to check every readable face against its approved Asset Library Face close-up, including turns, approaches and shot joins. If Vineet or the reviewer finds visible identity drift during shot or scene review, use the local face repair command on the affected shot interval. Show the comparison and get Vineet’s decision before using the repair in an edit.
 - **Video prompt creation:** use `.agents/skills/video-prompt-creation/SKILL.md` to propose a source-grounded creative decision matrix with recommendations, reasons and editable importance weights. Vineet verifies creative choices and priorities before prompt drafting. Keep the matrix on the existing shot page; then use `pre-video-review` on the exact prompt/request. Matrix approval does not authorize generation or spending.
+- **Video generation:** use `.agents/skills/video-generation/SKILL.md` when Vineet asks to generate a shot. First ask him to choose manual Higgsfield or the Runway Dev API if he has not chosen a route for this shot.
 - **Scene-stage reviews:** use `.agents/skills/storyboard-review/SKILL.md` for panels before animatic work, `.agents/skills/radio-cut-review/SKILL.md` for rendered scene audio and cue timing, and `.agents/skills/animatic-review/SKILL.md` for the rendered picture-and-sound test before layout. These apply the existing Playbook; they do not authorize new rules, media approval or generation. Inspect current Notion sources and actual media, state any playback limitations, and leave final listening/viewing decisions to Vineet.
 - **Use the Notion SDK first** (`@notionhq/client` with `NOTION_TOKEN`; reuse `lib/notion.js`). `node scripts/generate.js <shot> --print` shows what Notion holds for a shot and what would be sent; `--dry-run` checks it.
 - When writing a Gemini frame prompt, keep its ordered input images in the shot page's **Gemini references** YAML block (format in `README.md`). `npm run refs -- <shot> --frame start|end` downloads those images to `out/refs/<shot>/`, skipping existing files.
@@ -65,23 +66,23 @@ Skills live in `.agents/skills` (Codex); `.claude/skills` links to the same fold
 
 ## Rules that must not be broken
 
-1. **Never spend money or credits without Vineet's explicit OK** on that exact prompt or request. Before any real run, show `--print` and `--dry-run`; a real run's spending question can only be answered with `--yes`, used only for the exact run he approved (same shots or requests, same takes, same cost).
+1. **Never spend money or credits without Vineet's explicit OK** on that exact prompt or request. Show `--print` and `--dry-run` before a real run. Runway displays the full API contract, prompt, files and cost at a mandatory live `y/n` pause. Show that preview and relay Vineet's answer to the same paused process, or let him answer in his terminal. Runway rejects `--yes` and piped input. For other commands that support `--yes`, use it only for the exact run he approved.
 2. **Never generate before the prompt is approved.** The order is always: write the prompt, put it in Notion, show it, wait for his OK, then generate (or he generates), then review the result together.
 3. **Shots are defined in the Shots database.** Their IDs are working labels and a scene can be re-broken whenever it changes; order lives in the Order field. A shot owns no sound: all sound lives on its scene's row.
 4. **Kling's sound is never used.** All sound belongs to the scene. `audio: false` in `config.yaml` applies to every Kling 3.0 shot; never change it. Kling 4.0 always generates sound and has no switch to turn it off, so its sound is removed in the edit; in a speaking shot its prompt still gives the exact line, so the mouth moves to the right words.
 5. **Never overwrite or delete a take.** `out/` keeps every take; `log.csv` keeps every run, including failures.
-6. **Keys live only in `.env`** (fal, Notion, ElevenLabs). Never print, log or commit them, or put them in Notion or chat.
+6. **Keys live only in `.env`** (Runway, fal, Notion, ElevenLabs). Never print, log or commit them, or put them in Notion or chat.
 7. **Do not change the KEEP STILL standard block, the negative prompt, `models:` or the Notion field names in `config.yaml` without asking.** They were written to stop specific failures, and a different model changes the price and the look.
-8. **Clips on fal are at most 15 seconds, handles included.** A longer shot is split in Notion first, or made by Vineet on Higgsfield, where Kling 4.0 runs up to 30 seconds.
+8. **Clips on Runway Dev are at most 30 seconds and clips on fal are at most 15 seconds, handles included.** Resolve longer shots in the shot plan before generation.
 9. **One retry, then stop.** If a request fails twice, stop and report the error. Whether a clip came out wrong is Vineet's call after he watches it; never re-run a shot without his OK.
 10. **Git is Vineet's.** Never commit or push unless he asks.
 
 ## What a shot needs in Notion to generate
 
-- Model = Kling 3.0 or Kling 4.0, a Duration (s) (the shot's length in the scene, from the radio cut; the clip is generated `clip_handles` seconds longer at each end, rounded up, at most 15 on fal), a Start frame image, and all eight Prompt fields: Characters, Setting and look, Camera, Action, Dialogue, Timing, Environment, Keep still (the shot's own lines only; the standard block is added automatically).
-- Characters are written `@aryan`, `@priya`, `@auto_driver`, `@shopkeeper`: lowercase with underscores, matching the Asset Library row's name, each linked in the shot's Elements. The script turns them into `@Element1`, `@Element2` … and attaches that row's Face close-up and Reference Image.
+- Model = Kling 3.0 or Kling 4.0, a Duration (s) (the shot's length in the scene, from the radio cut; the clip is generated `clip_handles` seconds longer at each end, rounded up), a Start frame image, and all eight Prompt fields: Characters, Setting and look, Camera, Action, Dialogue, Timing, Environment, Keep still (the shot's own lines only; the standard block is added automatically).
+- Characters whose images should be sent are written `@aryan`, `@priya`, `@auto_driver`, `@shopkeeper`: lowercase with underscores, matching the Asset Library row's name, each linked in the shot's Elements. The script attaches that row's Face close-up and Reference Image as separate Runway references or as fal `@Element1`, `@Element2` … on Kling 3.0.
 - **Places get no element.** The room, pond or road comes from the start frame.
-- **Kling 4.0 takes no character images.** A Kling 4.0 prompt describes people in words, without `@names`, and everyone on screen must already be in the start frame. If a face must match its sheet (above all, someone walking in from off-frame), recommend Kling 3.0.
+- **Runway Dev is the default for Kling 4.0.** The command uses 1080p with a start frame, an optional end frame and up to ten images in total including character references. Check the exact prompt and image list with `--print`. The older frames-only fal route is available with explicit `--provider fal` for Kling 4.0.
 
 ## Voices and sounds
 

@@ -2,7 +2,7 @@
   "name": "physics-fal",
   "version": "1.0.0",
   "private": true,
-  "description": "Makes the files for the short film \"Physics\": voices, sounds, radio cut, animatic, mix and assembled cut for each scene, and its Kling clips on fal.ai.",
+  "description": "Makes the files for the short film \"Physics\": voices, sounds, radio cut, animatic, mix and assembled cut for each scene, and its Kling clips on Runway Dev and fal.",
   "type": "module",
   "engines": {
     "node": ">=20"
