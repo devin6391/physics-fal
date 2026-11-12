@@ -107,11 +107,16 @@ if (opts.frame) {
   const c = [...cuts].reverse().find((x) => x.shot === opts.frame);
   if (!c) fail(`${opts.frame} is not in the scene's Edit plan.`);
   if (c.src.still) fail(`${opts.frame} is a held still in the edit; its start frame is the picture to reuse.`);
-  const t = c.src.from + (c.until - c.at) - 1 / FPS;
+  const frameCount = Math.round(c.until * FPS) - Math.round(c.at * FPS);
+  if (frameCount < 1) fail(`${opts.frame} has no frames in the edit.`);
+  const lastFrame = frameCount - 1;
+  const t = c.src.from + lastFrame / FPS;
   const dir = fromRoot("out/frames");
   mkdirSync(dir, { recursive: true });
   const out = `${dir}/${opts.frame}-cut.png`;
-  execFileSync(FFMPEG, ["-y", "-v", "error", "-ss", t.toFixed(3), "-i", c.src.local ?? await downloadFile(c.src.file), "-frames:v", "1", out]);
+  // Count frames from the cut's in-point, as the render does, to avoid rounding a seek past the last frame.
+  const filter = `fps=${FPS},tpad=stop_mode=clone:stop_duration=${(frameCount / FPS + 1).toFixed(3)},select=eq(n\\,${lastFrame})`;
+  execFileSync(FFMPEG, ["-y", "-v", "error", "-ss", String(c.src.from), "-i", c.src.local ?? await downloadFile(c.src.file), "-vf", filter, "-frames:v", "1", out]);
   console.log(`The frame where ${opts.frame} is cut (${t.toFixed(2)} s into its ${c.src.what}): out/frames/${opts.frame}-cut.png`);
   console.log("Attach it to the next shot's Start frame in Notion.");
   process.exit(0);

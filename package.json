@@ -10,6 +10,7 @@
   "scripts": {
     "pull": "node scripts/pull.js",
     "refs": "node scripts/refs.js",
+    "frame": "node scripts/frame.js",
     "generate": "node scripts/generate.js",
     "voice": "node scripts/voice.js",
     "check": "node scripts/generate.js --section \"Cold open\" --dry-run",
@@ -23,6 +24,7 @@
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "2.76.0",
     "@fal-ai/client": "1.10.1",
+    "@google/genai": "3.1.0",
     "@notionhq/client": "5.27.1",
     "dotenv": "18.0.9",
     "yaml": "2.9.1"

@@ -147,6 +147,25 @@ the folder: use the command's current list, not every file in the directory.
 Only images are saved locally, not copies of the shot, prompt or reference plan.
 Notion remains the source of truth. CO-01's end-frame list is configured there.
 
+## Generating frame candidates with Google Cloud
+
+1. Claim the [Google Developer Program credit](https://developers.google.com/profile/help/benefits?hl=en#google-cloud-credits) and check that it is applied to the Cloud billing account linked to your project. Enable the [Vertex AI API](https://console.cloud.google.com/apis/library/aiplatform.googleapis.com) for that project.
+2. Install the [Google Cloud CLI](https://docs.cloud.google.com/sdk/docs/install-sdk) and run `gcloud auth application-default login`. If needed, set the quota project with `gcloud auth application-default set-quota-project YOUR_PROJECT_ID`. [Local authentication setup](https://docs.cloud.google.com/docs/authentication/set-up-adc-local-dev-environment)
+3. Add `GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID` to the existing `.env` and run `npm ci`.
+
+```bash
+npm run frame -- CO-05 --frame start --print
+npm run frame -- CO-05 --frame start --dry-run
+```
+
+The command reads the shot's **Start frame prompt** or **End frame prompt** and the corresponding ordered **Gemini references** list from Notion. For new prompts, put the exact model text in the field. If the field includes upload instructions, put a standalone `GEMINI PROMPT` line before the model text. The existing CO-05 download preamble is also supported.
+
+The dry run checks the input images and prints the exact `--yes --request …` command. Run that command after approving the shown prompt, inputs and estimated cost. The request ID checks the current prompt, reference bytes and billing project against the preview. Preview modes make zero Google generation calls. The real run sends one request with SDK retries disabled.
+
+The command requests one 16:9, 1K image on Vertex AI. It defaults to Gemini 3.1 Flash Image. Select Nano Banana Pro (Gemini 3 Pro Image) with `--model pro`, for example `npm run frame -- CO-05 --frame start --model pro --dry-run`. The printed estimate covers the reference images and image output at published standard global rates. Text and any thinking tokens are billed separately. Check the [current rates](https://cloud.google.com/model-garden/pricing) and your credit balance before a paid run.
+
+Each attempt gets a folder under `out/frames/scene-NN/` with its own `log.csv`. Review the saved candidate with its references, then use the upload command printed by the script when you select it.
+
 ## Making clips
 
 ```bash

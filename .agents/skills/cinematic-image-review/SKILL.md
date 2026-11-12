@@ -30,6 +30,8 @@ Apply the relevant checks; avoid demanding invisible details or optional frames.
 | Continuity | Compare the candidate with the relevant paired frame, approved reference and adjacent shot: geography, object placement, hands/props, state and motivated lighting. Identify which changes are intentional. |
 | Image integrity | Warped or fused forms, duplicate objects, melted texture, floating items, inconsistent reflections/perspective, illegible story-critical text, accidental labels/grids/watermark and unsuitable crop/detail. |
 
+For a shared door, identify the leaf and which face the camera sees. Compare the latch edge at a close view against an approved frame that shows the hardware. Check the knob or handle, latch, hinge side and swing as parts of the same door. A visible pull handle does not establish that the expected knob is present. Record the hardware finding separately from whether the door belongs in frame. Apply this comparison even when the door appears unexpectedly at the edge of the image. If a relevant part is hidden or no approved reference shows the needed face, record what is unverified. For a correction or a new image that intentionally shows the hardware, use an approved reference that actually depicts it or preserve the intended crop if the shot calls for the door to stay outside frame.
+
 Judge physical plausibility against the screenplay: a deliberately supernatural event is not an error merely because it violates ordinary physics. Distinguish a visible defect from a creative preference. Do not mark an image defective for harmless texture variation or an irrelevant occluded detail.
 
 ## Report and handoff
