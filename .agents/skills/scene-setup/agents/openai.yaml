@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scene Setup"
+  short_description: "Prepare a Physics scene through its approved animatic"
+  default_prompt: "Use $scene-setup to start or resume this Physics scene from its Notion row and continue through the animatic."

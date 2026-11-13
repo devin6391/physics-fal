@@ -10,7 +10,14 @@ Notion is the source of truth. Every run reads the shot straight from its row in
 - `@aryan`, `@priya` … bind a character's face close-up and sheet as Runway references or fal Elements
 - a take is **never overwritten**, and every run is logged with its cost
 
-## Production review skills
+## Scene setup and production review skills
+
+Use `$scene-setup` to start or resume a scene through the approved animatic.
+It reads the scene's Notion row, finds the first missing dependency, and guides
+screenplay, exposure and performance, sound, radio cut, storyboard and animatic.
+It leaves a checkpoint on the scene row for the next thread and hands off to
+shot layout after animatic approval. In a fresh Codex or Claude Code chat opened
+in this repo, say `Use scene-setup for Scene 2 and resume from its Notion row`.
 
 | Skill | Use it for |
 | --- | --- |
