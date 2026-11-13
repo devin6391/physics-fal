@@ -5,3 +5,5 @@ out/
 .DS_Store
 # Local secrets written by `elevenlabs onboard`
 /.env.local
+# Temporary scripts an assistant runs from the project root and deletes afterwards
+/.*-tmp.*

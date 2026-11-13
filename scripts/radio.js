@@ -1,19 +1,18 @@
 #!/usr/bin/env node
-// Builds a scene's radio cut, or with --mix its final mix: every voice line and sound of the scene laid on
+// Builds a scene's radio cut: every voice line and sound of the scene laid on
 // one timeline by a plan, mixed and levelled with ffmpeg. The plan is a YAML code block under the heading
-// "Radio cut plan" (or "Mix plan") on the scene's row page in Notion (the Scenes database); the voices and
+// "Radio cut plan" on the scene's row page in Notion (the Scenes database); the voices and
 // sounds are the files in the row's Voice files and Scene SFX audio, and a motif comes from its Asset
 // Library row. Nothing is generated and nothing is spent.
 //
 //   node scripts/radio.js --scene 1            build out/radio/scene-01/S01-radio-cut.mp3 and its cue list
-//   node scripts/radio.js --scene 1 --mix      build out/mix/scene-01/S01-mix.wav from the Mix plan
 //   node scripts/radio.js --scene 1 --print    the plan as read from Notion, with every cue's time (no audio)
 //   node scripts/radio.js --scene 1 --plan p.yaml   use a local plan instead of Notion's (to try a change)
 //
-// Then listen, and upload with: node scripts/upload.js --scene 1 radio-cut   (or: mix)
-// The format of the plans is described in README.md → The radio cut plan and The mix plan.
+// Then listen, and upload with: node scripts/upload.js --scene 1 radio-cut
+// The format of the plans is described in README.md → The radio cut plan.
 import dotenv from "dotenv";
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -31,7 +30,6 @@ const { values: opts } = parseArgs({
   options: {
     scene: { type: "string" },
     print: { type: "boolean", default: false },
-    mix: { type: "boolean", default: false },
     plan: { type: "string" },
   },
 });
@@ -40,42 +38,19 @@ function fail(msg) {
   process.exit(1);
 }
 const sceneNo = Number(opts.scene);
-if (!Number.isInteger(sceneNo) || sceneNo < 1) fail("Usage: node scripts/radio.js --scene 1 [--mix] [--print] [--plan file.yaml]");
+if (!Number.isInteger(sceneNo) || sceneNo < 1) fail("Usage: node scripts/radio.js --scene 1 [--print] [--plan file.yaml]");
 const NN = String(sceneNo).padStart(2, "0");
 
 const config = loadConfig();
 const sf = config.notion.scene_fields;
 const notion = makeNotion(config);
 const scene = await notion.sceneByNumber(sceneNo);
-const HEADING = opts.mix ? "Mix plan" : "Radio cut plan";
-const own = opts.plan ? YAML.parse(readFileSync(opts.plan, "utf8")) : await notion.pagePlan(scene.notion.id, HEADING);
-if (!own) fail(`Scene ${sceneNo} has no "${HEADING}" heading on its row page in Notion.`);
+const plan = opts.plan ? YAML.parse(readFileSync(opts.plan, "utf8")) : await notion.pagePlan(scene.notion.id, "Radio cut plan");
+if (!plan) fail(`Scene ${sceneNo} has no "Radio cut plan" heading on its row page in Notion.`);
 
 // A cue's id: its own, or its file's name without the scene and "sfx-" ("S01-sfx-door-bang" → door-bang).
 const idOf = (c, i) => c.id ?? (c.file ? c.file.replace(/^S\d+-(sfx-)?/i, "") : c.asset ? String(c.asset).toLowerCase().replace(/\s+/g, "-") : `mark-${i + 1}`);
 
-// A mix plan can start from another plan on the page ("include: Radio cut plan"): its cues, filters and
-// templates come first; a cue with the same id replaces one there, "drop" removes cues, and the rest is added.
-let plan = own;
-if (own.include) {
-  const base = await notion.pagePlan(scene.notion.id, own.include);
-  if (!base) fail(`"${own.include}", which the plan includes, is not on the scene's row page.`);
-  const mine = new Map((own.cues ?? []).map((c, i) => [idOf(c, 10000 + i), c]));
-  const drop = new Set(own.drop ?? []);
-  const merged = (base.cues ?? []).map((c, i) => [idOf(c, i), c]).filter(([id]) => !drop.has(id)).map(([id, c]) => {
-    if (!mine.has(id)) return c;
-    const r = mine.get(id);
-    mine.delete(id);
-    return r;
-  });
-  for (const id of drop) if (!(base.cues ?? []).some((c, i) => idOf(c, i) === id)) fail(`drop: no cue "${id}" in ${own.include}`);
-  plan = {
-    ...base, ...own,
-    filters: { ...base.filters, ...own.filters },
-    templates: { ...base.templates, ...own.templates },
-    cues: [...merged, ...mine.values()],
-  };
-}
 if (!Array.isArray(plan.cues) || !plan.cues.length) fail("The plan has no cues.");
 
 // ---------- Times: a cue starts at a number of seconds, or relative to another cue ("priya-9.start + 2.7").
@@ -224,7 +199,7 @@ const clock = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(2).padStart(5, "0
 const list = cues.map((c) => ({ t: +c._t.toFixed(2), end: +(c._t + (durations.get(c.id) ?? 0)).toFixed(2), lane: c.lane ?? "", what: c.what ?? c.mark ?? c.id }))
   .sort((a, b) => a.t - b.t);
 if (opts.print) {
-  console.log(`Scene ${sceneNo}, ${scene.title}: ${opts.mix ? "mix" : "radio cut"} ${clock(length)}`);
+  console.log(`Scene ${sceneNo}, ${scene.title}: radio cut ${clock(length)}`);
   for (const c of list) console.log(`  ${clock(c.t)}–${clock(c.end)}  ${c.lane.padEnd(18)} ${c.what}`);
   for (const w of warnings) console.log(`  ! ${w}`);
   process.exit(0);
@@ -242,8 +217,9 @@ fades(mix, 0, plan.fade_out ?? 0);
 const pk = peak(mix);
 if (pk > 0.89) for (let i = 0; i < mix.length; i++) mix[i] *= 0.89 / pk;
 
-const KIND = opts.mix ? { folder: "out/mix", name: "mix", stage: "mix" } : { folder: "out/radio", name: "radio-cut", stage: "radio-cut" };
-const dir = fromRoot(`${KIND.folder}/scene-${NN}`);
+const folder = `out/radio/scene-${NN}`;
+const name = `S${NN}-radio-cut`;
+const dir = fromRoot(folder);
 mkdirSync(dir, { recursive: true });
 const work = join(tmpdir(), `radio-${process.pid}`);
 mkdirSync(work, { recursive: true });
@@ -253,13 +229,11 @@ const report = spawnSync(FFMPEG, ["-hide_banner", "-nostats", "-i", raw, "-af", 
 const measured = [...report.matchAll(/I:\s+(-?[\d.]+) LUFS/g)].pop();
 const target = plan.loudness ?? -16;
 const gain = measured ? target - Number(measured[1]) : 0;
-// The radio cut is an mp3 to listen to; the mix is a wav, since the edit and the film pass build on it.
-const out = `${dir}/S${NN}-${KIND.name}.${opts.mix ? "wav" : "mp3"}`;
-const codec = opts.mix ? ["-c:a", "pcm_s24le"] : ["-c:a", "libmp3lame", "-b:a", "192k"];
+const out = `${dir}/${name}.mp3`;
 execFileSync(FFMPEG, ["-y", "-v", "error", "-i", raw, "-af", `volume=${gain.toFixed(2)}dB,alimiter=limit=0.84:attack=5:release=50:level=false`,
-  "-ar", String(SR), ...codec, out]);
+  "-ar", String(SR), "-c:a", "libmp3lame", "-b:a", "192k", out]);
 rmSync(work, { recursive: true, force: true });
-writeFileSync(`${dir}/S${NN}-${KIND.name}-cues.json`, JSON.stringify({ scene: sceneNo, length: +length.toFixed(2), cues: list }, null, 1));
-console.log(`${opts.mix ? "Mix" : "Radio cut"}: ${KIND.folder}/scene-${NN}/S${NN}-${KIND.name}.${opts.mix ? "wav" : "mp3"} (${clock(length)}), cue list beside it.`);
+writeFileSync(`${dir}/${name}-cues.json`, JSON.stringify({ scene: sceneNo, length: +length.toFixed(2), cues: list }, null, 1));
+console.log(`Radio cut: ${folder}/${name}.mp3 (${clock(length)}), cue list beside it.`);
 for (const w of warnings) console.log(`! ${w}`);
-console.log(`Listen, then upload: node scripts/upload.js --scene ${sceneNo} ${KIND.stage}`);
+console.log(`Listen, then upload: node scripts/upload.js --scene ${sceneNo} radio-cut`);

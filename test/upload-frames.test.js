@@ -24,6 +24,7 @@ async function fixture(t, files = [], { source = "84f0353c-eb31-4810-8c44-87bd41
       "Sound script": { type: "rich_text", rich_text: [] },
       "Voice files": { type: "files", files: [] },
       "Scene SFX audio": { type: "files", files: [] },
+      "Scene radio cut": { type: "files", files: attachments },
       "End frame": { type: "files", files: attachments },
       "Master still": { type: fieldType, [fieldType]: fieldType === "files" ? attachments : [] },
       Storyboard: { type: "files", files: attachments },
@@ -141,4 +142,18 @@ test("existing scene stage syntax still resolves its configured files field", as
   const { stdout } = await f.invoke("--scene", "1", "storyboard", f.image, "--dry-run");
   assert.match(stdout, /Scene 1, Test scene → Storyboard/);
   assert.match(stdout, /Dry run: 1 file/);
+});
+
+test("radio cut upload previews one replacement and rejects a second soundtrack", async t => {
+  const f = await fixture(t, ["S01-radio-cut.mp3"], { source: "f03b3f2a-b9f4-432a-9b8f-9ce47e41d4d9" });
+  const replacement = join(f.dir, "S01-radio-cut.m4a");
+  const alternate = join(f.dir, "alternate.mp3");
+  writeFileSync(replacement, "approved audio");
+  writeFileSync(alternate, "other audio");
+  const { stdout } = await f.invoke("--scene", "1", "radio_cut", replacement, "--dry-run");
+  assert.match(stdout, /Scene radio cut/);
+  assert.match(stdout, /Dry run: 1 file/);
+  await assert.rejects(f.invoke("--scene", "1", "radio-cut", alternate, "--dry-run"), /Use its filename stem/);
+  await assert.rejects(f.invoke("--scene", "1", "radio-cut", replacement, alternate, "--dry-run"), /Name one approved radio-cut audio file/);
+  assert.deepEqual(f.requests.map(r => r.method), ["POST", "GET", "POST", "GET"]);
 });

@@ -2,7 +2,7 @@
   "name": "physics-fal",
   "version": "1.0.0",
   "private": true,
-  "description": "Makes the files for the short film \"Physics\": voices, sounds, radio cut, animatic, mix and assembled cut for each scene, and its Kling clips on Runway Dev and fal.",
+  "description": "Makes the files for the short film \"Physics\": voices, sounds, radio cut, animatic and assembled cut for each scene, and its Kling clips on Runway Dev and fal.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -18,7 +18,6 @@
     "upload": "node scripts/upload.js",
     "radio": "node scripts/radio.js",
     "animatic": "node scripts/animatic.js",
-    "mix": "node scripts/radio.js --mix",
     "assemble": "node scripts/assemble.js",
     "face-repair": "node scripts/face-repair.js",
     "lip-sync": "node scripts/lip-sync.js"

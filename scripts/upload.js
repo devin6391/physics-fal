@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Uploads a scene's files to its row in the Scenes database in Notion: the radio cut, the storyboard panels,
-// the animatic, the assembled scene and the mix. Each has its own field on the row and its own folder in out/.
+// the animatic and the assembled scene. Each has its own field on the row and its own folder in out/.
 //
 //   node scripts/upload.js --scene 1 storyboard            every file in out/storyboard/scene-01/
 //   node scripts/upload.js --scene 1 animatic              every file in out/animatic/scene-01/
@@ -19,7 +19,6 @@
 //   storyboard  out/storyboard/scene-NN/  → Storyboard
 //   animatic    out/animatic/scene-NN/    → Animatic
 //   assembled   out/assembled/scene-NN/   → Assembled scene
-//   mix         out/mix/scene-NN/         → Scene mix
 //   sfx         out/sound/scene-NN/approved/ → Scene SFX audio (sounds.js does this after you approve)
 //   voice       no folder: name the files → Voice files (voice.js does this after you approve)
 //
@@ -42,7 +41,6 @@ const STAGES = {
   storyboard: { field: "storyboard", folder: "out/storyboard" },
   animatic: { field: "animatic", folder: "out/animatic" },
   assembled: { field: "assembled", folder: "out/assembled" },
-  mix: { field: "mix", folder: "out/mix" },
   sfx: { field: "sfx_files", folder: "out/sound", sub: "approved" },
   voice: { field: "voice_files" },
 };
@@ -71,7 +69,8 @@ const isShot = opts.shot !== undefined;
 const custom = opts.field !== undefined;
 const [stageName, ...stageFiles] = positionals;
 const given = custom ? positionals : stageFiles;
-const stage = custom ? null : (isShot ? FRAMES : STAGES)[stageName?.toLowerCase().replace(/_/g, "-")];
+const stageKey = stageName?.toLowerCase().replace(/_/g, "-");
+const stage = custom ? null : (isShot ? FRAMES : STAGES)[stageKey];
 const targets = [opts.shot, opts.scene, opts.page].filter(v => v !== undefined);
 if (targets.length !== 1 || targets.some(v => !v.trim()) || (opts.scene !== undefined && (!Number.isInteger(sceneNo) || sceneNo < 1))
   || (custom ? (!opts.field.trim() || !given.length || opts.force)
@@ -97,6 +96,10 @@ if (given.length) {
 if (!imagesOnly) paths = paths.filter((p) => !basename(p).startsWith(".") && !p.toLowerCase().endsWith(".json"));
 paths.sort(byName);
 if (!paths.length) fail("No files to upload.");
+const isRadioCut = !custom && !isShot && stageKey === "radio-cut";
+if (isRadioCut && (paths.length !== 1 || !/\.(wav|mp3|m4a|aac|flac)$/i.test(paths[0]))) {
+  fail("Name one approved radio-cut audio file to upload.");
+}
 if (imagesOnly) {
   const stems = new Set();
   for (const p of paths) {
@@ -115,6 +118,12 @@ const target = opts.page !== undefined ? await notion.productionPage(opts.page)
   : isShot ? { ...await notion.shotPageById(opts.shot), kind: "shot" } : { ...scene.notion, kind: "scene" };
 const pageId = target.id;
 const inNotion = await notion.fieldFiles(pageId, field);
+if (isRadioCut) {
+  const stem = (name) => basename(name, extname(name)).toLowerCase();
+  if (inNotion.length > 1 || inNotion.some((name) => stem(name) !== stem(paths[0]))) {
+    fail(`The ${field} field already contains ${inNotion.join(", ")}. Use its filename stem for an approved replacement, or select the current file in Notion.`);
+  }
+}
 const record = existsSync(RECORD) ? JSON.parse(readFileSync(RECORD, "utf8")) : {};
 const key = (name) => `${pageId}|${field}|${name}`;
 const hashOf = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");

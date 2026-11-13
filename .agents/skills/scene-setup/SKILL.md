@@ -1,6 +1,6 @@
 ---
 name: scene-setup
-description: Start or resume a Physics film scene from screenplay through an approved animatic. Use for preproduction planning, dialogue and sound preparation, radio cut, storyboard, animatic, or a fresh-thread scene handoff. Production shot layout starts after this workflow.
+description: Start or resume a Physics film scene from screenplay through an approved animatic. Use for preproduction planning, dialogue and sound preparation, radio cut, storyboard, animatic, or a fresh-thread scene handoff. Animation begins with working shot rows in the Shots database.
 ---
 
 # Set up a Physics scene
@@ -23,8 +23,8 @@ Use the [Shot Production Playbook](https://app.notion.com/p/400252f6b4ff81c0be66
 | **4. Storyboard** | Use the approved exposure, radio timing and performance arc to plan frozen moments that make staging, action, geography and reactions readable. Reuse views when they still work. Save prompts and reference roles on the scene page for Vineet's Gemini work. Apply [storyboard-review](../storyboard-review/SKILL.md) to actual panels and save the approved files. |
 | **5. Animatic** | Write the Animatic plan against the approved radio and panel filenames, with holds, pushes and transitions where useful. Render picture and sound together, apply [animatic-review](../animatic-review/SKILL.md) and have Vineet watch the actual render. Save the approved animatic on the scene row. |
 
-A beat can share a panel with another beat. The animatic tests scene rhythm and staging. Use the approved radio and measured cue list for timing, the storyboard for staging, and the performance arc for intent. When an approved input changes, rebuild and review the affected outputs as described in the handoff reference.
+A beat can share a panel with another beat. The animatic tests scene rhythm and staging. Use the approved radio and measured cue list for timing, the storyboard for staging, and the performance arc for intent. The radio cut continues through production and editing. When an approved input changes, rebuild and review affected outputs, including shot timings and assembly where relevant.
 
 ## Leave the scene ready for the next thread
 
-Record the current decision, exact approved or pending artifacts, any relevant local path, and the next action on the scene row using its existing fields and notes. Include evidence limits when playback was unavailable. When the animatic is approved, report **ready for shot layout** and point to the Playbook's Stage 6. End this skill's work at that handoff.
+Record the current decision, exact approved or pending artifacts, any relevant local path, and the next action on the scene row using its existing fields and notes. Include evidence limits when playback was unavailable. When the animatic is approved, report **ready for Animation** and identify the radio cut and animatic to use when defining the working shots. End this skill's work at that handoff.

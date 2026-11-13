@@ -1,6 +1,6 @@
 ---
 name: animatic-review
-description: Review a Physics scene's rendered animatic for story readability, staging, emotional progression, picture/sound timing and assembly artefacts before production shot layout or after panels, audio or the plan change.
+description: Review a Physics scene's rendered animatic for story readability, staging, emotional progression, picture/sound timing and assembly artefacts before shot production or after panels, audio or the plan change.
 ---
 
 # Animatic review
@@ -45,4 +45,4 @@ Keep **Animatic review** on the existing scene page. Include exact inputs, refer
 
 Propose the smallest correction, retaining good panels, story beat IDs and approved radio timing. Show any essential retiming or story change for approval first. Do not edit the screenplay, upload/select a render, advance Stage/Status, generate new assets or spend from this review. Preserve existing outputs before an authorized rebuild to a fixed filename; a changed plan is not a repaired video until rebuilt and reviewed.
 
-After acceptance, hand tested staging and measured intervals to production layout, with unresolved production risks explicit. After changes, recheck affected intervals and joins, plus whole-scene flow, and identify stale shot/frame/prompt/edit dependencies. Keep current findings on working pages and history in its log. New production-rule proposals go to Vineet for review before being saved in the Playbook.
+After acceptance, carry tested staging and measured intervals into the working rows in the Shots database, with unresolved production risks explicit. After changes, recheck affected intervals and joins, plus whole-scene flow, and identify stale shot/frame/prompt/edit dependencies. Keep current findings on working pages and history in its log. New production-rule proposals go to Vineet for review before being saved in the Playbook.

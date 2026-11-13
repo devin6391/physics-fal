@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Assembles a scene: each shot's approved clip (or held still) on its time, cut and dissolved as the scene's
-// Edit plan says, with one grade over the whole scene and the scene's mix (or radio cut) as its sound. The
+// Edit plan says, with one grade over the whole scene and the current radio cut as its sound. The
 // clips' own sound is never used. The plan is a YAML code block under the heading "Edit plan" on the scene's
 // row page in Notion (the Scenes database); the pictures come from each shot's row in the Shots database.
 //
@@ -59,12 +59,12 @@ const FPS = plan.fps ?? 24;
 const HANDLE = config.clip_handles ?? 0;
 const stem = (n) => n.replace(/\.[^.]+$/, "").toLowerCase();
 
-// ---------- The sound: the scene's mix, or its radio cut until the mix exists
+// ---------- The sound: the scene's current radio cut
 checkFfmpeg();
-const soundField = plan.audio === "radio" ? sf.radio_cut : sf.mix;
+const soundField = sf.radio_cut;
 const sounds = (await notion.filesOn(scene.notion.id, soundField)).filter((x) => /\.(wav|mp3|m4a|aac|flac)$/i.test(x.name));
-if (!sounds.length) fail(`The scene's ${soundField} in Notion is empty${plan.audio === "radio" ? "" : ' (build the mix first, or write "audio: radio" in the plan)'}.`);
-const audio = await downloadFile(sounds.at(-1));
+if (sounds.length !== 1) fail(`Select exactly one current radio cut in the scene's ${soundField} field in Notion (found ${sounds.length}).`);
+const audio = await downloadFile(sounds[0]);
 const end = plan.end === undefined || plan.end === "audio" ? lengthOf(audio) : Number(plan.end);
 const cuts = timeline(plan.shots, end, fail);
 

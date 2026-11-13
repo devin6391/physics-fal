@@ -55,19 +55,22 @@ const stem = (n) => n.replace(/\.[^.]+$/, "").toLowerCase();
 
 // ---------- Files: from Notion (default) or from out/ (--local)
 checkFfmpeg();
-async function fileFrom(field, folder, name, exts) {
+async function fileFrom(field, folder, name, exts, single = false) {
+  const matches = (filename) => name ? stem(filename) === stem(name) : exts.some((ext) => filename.toLowerCase().endsWith(ext));
   if (opts.local) {
     const dir = fromRoot(`${folder}/scene-${NN}`);
-    const hit = existsSync(dir) && readdirSync(dir).find((n) => (name ? stem(n) === stem(name) : exts.some((e) => n.toLowerCase().endsWith(e))));
-    if (!hit) fail(`${name ?? exts.join("/")} is not in ${folder}/scene-${NN}/`);
-    return join(dir, hit);
+    const hits = existsSync(dir) ? readdirSync(dir).filter(matches) : [];
+    if (!hits.length) fail(`${name ?? exts.join("/")} is not in ${folder}/scene-${NN}/`);
+    if (single && hits.length !== 1) fail(`Keep one current radio cut in ${folder}/scene-${NN}/ (found ${hits.length}).`);
+    return join(dir, hits[0]);
   }
   const list = await notion.filesOn(scene.notion.id, field);
-  const f = list.find((x) => (name ? stem(x.name) === stem(name) : exts.some((e) => x.name.toLowerCase().endsWith(e))));
-  if (!f) fail(`${name ?? "an " + exts.join("/") + " file"} is not in the scene's ${field} in Notion.`);
-  return downloadFile(f);
+  const hits = list.filter((file) => matches(file.name));
+  if (!hits.length) fail(`${name ?? "an " + exts.join("/") + " file"} is not in the scene's ${field} in Notion.`);
+  if (single && hits.length !== 1) fail(`Select one current radio cut in the scene's ${field} field in Notion (found ${hits.length}).`);
+  return downloadFile(hits[0]);
 }
-const audio = await fileFrom(sf.radio_cut, "out/radio", null, [".mp3", ".wav", ".m4a"]);
+const audio = await fileFrom(sf.radio_cut, "out/radio", null, [".wav", ".mp3", ".m4a", ".aac", ".flac"], true);
 const radioLength = lengthOf(audio);
 const end = plan.end === undefined || plan.end === "radio" ? radioLength : Number(plan.end);
 

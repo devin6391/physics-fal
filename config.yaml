@@ -37,7 +37,6 @@ notion:
     storyboard: Storyboard
     animatic: Animatic
     assembled: Assembled scene
-    mix: Scene mix
   assets_data_source: d7aed21e-c389-42a2-aab9-fdeb0a420334   # 🎬 Asset Library
   asset_fields:                  # 🎬 Asset Library
     name: Asset

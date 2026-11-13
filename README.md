@@ -1,6 +1,6 @@
 # physics-fal
 
-Makes the files for the short film **Physics**: each scene's voices and sounds (ElevenLabs), its radio cut, animatic, mix and assembled cut (ffmpeg), and the moving clips made on [Runway Dev](https://dev.runway.com) (Kling 4.0) or [fal.ai](https://fal.ai) (Kling 3.0), one shot or section at a time. The editing is done here, by commands, not in an editing app.
+Makes the files for the short film **Physics**: each scene's voices and sounds (ElevenLabs), its radio cut, animatic and assembled cut (ffmpeg), and the moving clips made on [Runway Dev](https://dev.runway.com) (Kling 4.0) or [fal.ai](https://fal.ai) (Kling 3.0), one shot or section at a time. The editing is done here, by commands, not in an editing app.
 
 Notion is the source of truth. Every run reads the shot straight from its row in the **Shots** database (the eight prompt fields, duration, start and end frames, and its characters) and the locked character images from the **Asset Library**. There are no local copies of prompts or images to keep in sync: change something in Notion and the next run uses it. The project applies the film's rules the same way every time:
 
@@ -16,7 +16,7 @@ Use `$scene-setup` to start or resume a scene through the approved animatic.
 It reads the scene's Notion row, finds the first missing dependency, and guides
 screenplay, exposure and performance, sound, radio cut, storyboard and animatic.
 It leaves a checkpoint on the scene row for the next thread and hands off to
-shot layout after animatic approval. In a fresh Codex or Claude Code chat opened
+shot production after animatic approval. In a fresh Codex or Claude Code chat opened
 in this repo, say `Use scene-setup for Scene 2 and resume from its Notion row`.
 
 | Skill | Use it for |
@@ -36,6 +36,8 @@ For example: `Use $radio-cut-review on scene 1's current radio cut`,
 The three scene-stage reviews follow the existing Playbook. Rough sketches and
 held animatic panels are judged for their story/staging job, not as finished
 cinematic footage. Audio overlaps do not require extra panels or shots.
+
+During Animation, define the working shots in the Shots database with Order, beat coverage, duration, timing and references. Revise the rows and Edit plan when approved footage warrants splitting, merging, retiring or retiming shots. Keep shot IDs and beat numbers stable where possible. The radio cut is the evolving scene soundtrack. Carry approved changes to cues, beds, music and motifs in the Radio cut plan, then rebuild and review affected exposure times, the animatic, shot timings and assembly.
 
 The review skills read current Notion sources and inspect the actual media available. A cue
 list, waveform or successful decode does not substitute for listening; sampled
@@ -296,7 +298,7 @@ cues:
   - { file: S01-aryan-7, level: rms -20, at: priya-9.start + 2.70 }    # comes in over her line
   - { file: S01-sfx-ringtone, at: 5.0, loop: 13.5, trim: [4.5, 12.5], level: rms -24 }
   - { file: S01-sfx-screams, at: priya-12.start + 4.78, level: rms -19, gain: "0:-20 0.35:0 12:-14 20:-90" }
-  - { mark: Motif B goes here at the mix, at: distant-thud.start }
+  - { mark: Motif B timing mark pending picture review, at: distant-thud.start }
 ```
 
 - **file:** the file's name (without extension) in Voice files or Scene SFX audio. A cue's **id** is the file name without `S01-` and `sfx-` (`priya-1`, `distant-thud`), or set `id:` yourself when one file is used twice.
@@ -304,7 +306,9 @@ cues:
 - **level:** `rms -20` sets the loudness of the sounding parts; `peak -16` sets the loudest point. A file that is silent is left out, with a warning.
 - **filter**, **loop** (repeat the file to this many seconds), **trim** (`[from, to]` seconds of the file), **fade** (`[in, out]` seconds), **gain** (one number in dB, or a list `time:dB` across the cue; `-90` is silence), **lane** and **what** (for the cue list), **mark** (a timing mark with no sound).
 
-The cue list beside the radio cut gives every cue's time; the shots' Timing tables and the animatic are cut from it.
+- **asset:** a locked Asset Library sound, such as Motif A. The script uses the audio attached to the asset’s Reference Image field. Add `file:` to select one when the asset has several.
+
+The cue list gives every cue’s time. Use it for the exposure sheet, shot Timing tables and animatic. Attach one approved current audio file in Scene radio cut. For a revision, archive the previous local render and its cue list, then upload the approved replacement using the same filename stem.
 
 ## Building the animatic
 
@@ -335,34 +339,11 @@ panels:
 
 Each panel is held from its **at** until the next one. **zoom** pushes in (or out) across the hold, toward **focus** (the point of the panel, 0 to 1 across and down); **dissolve** fades in from the panel before over that many seconds. A panel can be used again (a hold). Times come from the scene's exposure sheet (its Time column), which is taken from the radio cut. A strip along the bottom shows the time, the beat and the panel, for review notes.
 
-## Building the mix
-
-The mix is built the same way as the radio cut, from the scene's **Mix plan** (a YAML code block under "Mix plan" on the row page), once the pictures are in place: the radio cut's cues with the follow-picture sounds matched to the picture, the motifs at their marks, and the levels finished.
-
-```
-node scripts/radio.js --scene 1 --mix --print   # every cue and its time
-node scripts/radio.js --scene 1 --mix           # out/mix/scene-01/S01-mix.wav and S01-mix-cues.json
-node scripts/upload.js --scene 1 mix            # after listening
-```
-
-### The mix plan
-
-```yaml
-include: Radio cut plan          # start from the radio cut's cues, filters and templates
-loudness: -16
-drop: [footsteps-in]             # cues of the radio cut left out (by id)
-cues:
-  - { id: footsteps-in, file: S01-sfx-footsteps-in, at: 6.1, level: peak -16, lane: Movement }   # same id: replaces it, matched to the picture
-  - { asset: Motif A, at: priya-15.end + 7.0, level: peak -12, lane: Motif, what: "Motif A, one drop" }
-```
-
-Everything in the radio cut plan works here. **include** names another plan on the same page; a cue with the same id replaces that plan's cue, **drop** removes cues, every other cue is added, and settings written here (length, loudness, filters, templates) win. **asset** takes the sound from that Asset Library row's Reference Image (motifs are locked there, never per scene; `file:` picks one file when the row has several). The mix is a 24-bit wav, since the edit and the film pass build on it.
-
 ## Assembling a scene
 
-`scripts/assemble.js` puts the scene's shots on its sound, as the edit plan says. Each clip's own sound is dropped; the sound is the scene's mix (or its radio cut, before the mix exists).
+`scripts/assemble.js` puts the scene's shots on its sound, as the edit plan says. Every cut uses the scene’s current approved radio cut. The script discards source-clip audio.
 
-Saved locally: [Scene 1 partial cut through CO-04](out/assembled/scene-01/S01-CO01-to-CO04-partial-cut-20261110.mp4), 14 seconds with the scene radio cut. This checkpoint preserves the continuous-entry CO-01 repair; its original timestamped review and source takes are retained. Media under `out/` stays local and is not tracked by Git. The current rebuild plan remains on the [scene's Notion page](https://app.notion.com/p/3fb252f6b4ff8104aff1e148d25704e4); run `node scripts/assemble.js --scene 1 --review` to build from that current plan without overwriting this checkpoint.
+Scene 1’s approved assembled cut, current radio cut and final picture timings are on its [Notion page](https://app.notion.com/p/3fb252f6b4ff8104aff1e148d25704e4). The opening review is a separate checkpoint. Run `node scripts/assemble.js --scene 1 --review --heading "Opening partial cut plan"` to render that opening plan against the current radio cut. Media under `out/` is kept outside Git.
 
 ```
 node scripts/assemble.js --scene 1 --print         # every cut and the picture it will use
@@ -378,7 +359,6 @@ A YAML code block under "Edit plan" on the scene's row page:
 ```yaml
 size: 1280x720
 fps: 24
-audio: mix                     # the Scene mix; "radio" uses the Scene radio cut
 end: audio                     # the sound's length (or seconds)
 grade: grades/physics.cube     # optional: one LUT (a .cube file in the project) over the whole scene
 label: true                    # optional: a strip with the time and the shot, for review
@@ -395,7 +375,7 @@ Each shot is held from its **at** until the next. Its picture is its **Final sho
 
 Vineet can run `--frame CO-07` to export CO-07’s actual cut frame and supply it for the next shot’s Start frame. The assistant can identify the cut time, review the supplied image, and attach the exact file.
 
-For an incremental review cut, set `review: true` and a numeric `end` in the Notion Edit plan, then run `node scripts/assemble.js --scene 1 --review --print` before building with `--review`. An unselected take can be named on its cut as `candidate: out/cold_open/CO-04-higgsfield-eb38a1b0.mp4`, with an explicit `from`. Candidates must be existing videos under `out/` and require `--review`; they do not fill the shot's selected media fields or approve it. Review outputs use unique `S01-review-<timestamp>.mp4` names, leaving the assembled production file alone. `audio: radio` keeps the radio cut continuous, including its existing overlaps; all source-clip audio is discarded.
+For an incremental review cut, set `review: true` and a numeric `end` in the Notion Edit plan, then run `node scripts/assemble.js --scene 1 --review --print` before building with `--review`. An unselected take can be named on its cut as `candidate: out/cold_open/CO-04-higgsfield-eb38a1b0.mp4`, with an explicit `from`. Candidates must be existing videos under `out/` and require `--review`; they do not fill the shot's selected media fields or approve it. Review outputs use unique `S01-review-<timestamp>.mp4` names, leaving the assembled production file alone. The radio cut plays continuously, including its existing overlaps.
 
 Use `--heading "CO-01 repair plan"` to read a separate named plan from the scene page when testing a repair without replacing its main Edit plan.
 
@@ -442,7 +422,7 @@ node scripts/upload.js --scene 1 storyboard --dry-run  # what it would upload
 node scripts/upload.js --scene 1 storyboard --force    # upload again even where Notion already has the file
 ```
 
-The stages and their folders: `radio-cut` (out/radio), `storyboard` (out/storyboard), `animatic` (out/animatic), `assembled` (out/assembled) and `mix` (out/mix), each in a `scene-NN/` folder; `sfx` (out/sound/scene-NN/approved) and `voice` (name the files), which `sounds.js` and `voice.js` already upload after you approve.
+The stages and their folders: `radio-cut` (out/radio), `storyboard` (out/storyboard), `animatic` (out/animatic) and `assembled` (out/assembled), each in a `scene-NN/` folder; `sfx` (out/sound/scene-NN/approved) and `voice` (name the files), which `sounds.js` and `voice.js` already upload after you approve.
 
 - Only new or changed files are uploaded: a file Notion already has, unchanged since this script uploaded it, is skipped; a changed file replaces the one of the same name. What was uploaded is remembered in `.cache/notion-uploads.json`.
 - A file that is in Notion but was put there another way (by hand) is skipped unless `--force`.
@@ -523,9 +503,9 @@ Use `@names` only for the characters whose assets should be sent. Places are est
 | `lib/runway.js` | Runway Dev request, ephemeral uploads, polling and price estimate |
 | `scripts/voice.js` | Makes a scene's dialogue on ElevenLabs, cuts it into line files and uploads them to Notion |
 | `scripts/sounds.js` | Makes a scene's other sounds on ElevenLabs Sound Effects and uploads them to Notion |
-| `scripts/radio.js` | Builds a scene's radio cut, or with `--mix` its mix, from the plan on its row page |
+| `scripts/radio.js` | Builds a scene's radio cut from the plan on its row page |
 | `scripts/animatic.js` | Builds a scene's animatic from its storyboard panels and radio cut |
-| `scripts/assemble.js` | Assembles a scene from its shots' clips and stills, on its mix |
+| `scripts/assemble.js` | Assembles a scene from its shots’ clips and stills, on its current radio cut |
 | `scripts/upload.js` | Uploads scene assets or a shot's start/end frame to Notion |
 | `lib/video.js` | The picture side of the animatic and the assembled scene (ffmpeg) |
 | `lib/voice.js` | Reads a scene's Sound script: the voice requests and the SOUNDS list |
